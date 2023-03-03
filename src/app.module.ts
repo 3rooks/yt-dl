@@ -1,9 +1,18 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DatabaseModule } from './config/database/database.module';
 
 @Module({
-    imports: [MongooseModule.forRoot('mongodb://localhost/nest-api')],
-    controllers: [],
-    providers: []
+    imports: [
+        ConfigModule.forRoot({
+            isGlobal: true
+        }),
+        DatabaseModule
+    ]
 })
-export class AppModule {}
+export class AppModule {
+    static port: number;
+    constructor(private readonly config: ConfigService) {
+        AppModule.port = this.config.get<number>('PORT');
+    }
+}
