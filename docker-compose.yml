@@ -1,0 +1,32 @@
+version: '3.7'
+services:
+    db:
+        image: mongo:latest
+        container_name: mongodb
+        restart: always
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER:-root}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:-admin}
+        ports:
+            - ${MONGODB_PORT:-27017}:27017
+        volumes:
+            - mongodb:/db_data
+    mongoexpress:
+        image: mongo-express:latest
+        container_name: mongo_express
+        restart: always
+        environment:
+            ME_CONFIG_BASICAUTH_USERNAME: root
+            ME_CONFIG_BASICAUTH_PASSWORD: admin
+            ME_CONFIG_MONGODB_SERVER: mongodb
+            ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGODB_USER:-root}
+            ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGODB_PASSWORD:-admin}
+        ports:
+            - 8081:8081
+        depends_on:
+            - db
+    yt:
+        image: jauderho/yt-dlp
+        container_name: yt-dlp
+volumes:
+    mongodb:
