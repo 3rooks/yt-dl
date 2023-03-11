@@ -1,19 +1,31 @@
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { CreateDownloadDto } from './dto/create-download.dto';
 import { UpdateDownloadDto } from './dto/update-download.dto';
+import { Download, DownloadDocument } from './schema/download.schema';
 
 @Injectable()
 export class DownloadService {
-    create(createDownloadDto: CreateDownloadDto) {
-        return 'This action adds a new download';
+    constructor(
+        @InjectModel(Download.name)
+        private readonly downloadModel: Model<DownloadDocument>
+    ) {}
+
+    async create(createDownloadDto: CreateDownloadDto): Promise<Download> {
+        return new this.downloadModel(createDownloadDto).save();
     }
 
-    findAll() {
-        return `This action returns all download`;
+    async saveDownload(videoDetails: Download): Promise<Download> {
+        return new this.downloadModel(videoDetails).save();
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} download`;
+    async findAll(): Promise<Download[]> {
+        return this.downloadModel.find().exec();
+    }
+
+    findOneByVideoId(id: string): Promise<Download> {
+        return this.downloadModel.findOne({ videoId: id }).exec();
     }
 
     update(id: number, updateDownloadDto: UpdateDownloadDto) {
