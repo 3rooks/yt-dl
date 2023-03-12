@@ -1,6 +1,6 @@
 version: '3.7'
 services:
-    db:
+    mongodb:
         image: mongo:latest
         container_name: mongodb
         restart: always
@@ -10,7 +10,7 @@ services:
         ports:
             - ${MONGODB_PORT:-27017}:27017
         volumes:
-            - mongodb:/db_data
+            - mongo:/data/db
     mongoexpress:
         image: mongo-express:latest
         container_name: mongo_express
@@ -24,6 +24,6 @@ services:
         ports:
             - 8081:8081
         depends_on:
-            - db
+            - mongodb
 volumes:
-    mongodb:
+    mongo:
