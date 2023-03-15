@@ -1,4 +1,4 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateDownloadDto } from './create-download.dto';
+import { FormatDownloadDto } from './format-download.dto';
 
-export class UpdateDownloadDto extends PartialType(CreateDownloadDto) {}
+export class UpdateDownloadDto extends PartialType(FormatDownloadDto) {}

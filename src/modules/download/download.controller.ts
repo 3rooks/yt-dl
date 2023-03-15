@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     Body,
     Controller,
     Delete,
@@ -18,11 +19,13 @@ import ytdl, {
     chooseFormat,
     downloadFromInfo,
     filterFormats,
-    getInfo
+    getInfo,
+    getVideoID,
+    validateURL
 } from 'ytdl-core';
 import { DownloadService } from './download.service';
-import { CreateDownloadDto } from './dto/create-download.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
+import { FormatDownloadDto } from './dto/format-download.dto';
 import { UpdateDownloadDto } from './dto/update-download.dto';
 
 @ApiTags('Download')
@@ -30,10 +33,22 @@ import { UpdateDownloadDto } from './dto/update-download.dto';
 export class DownloadController {
     constructor(private readonly downloadService: DownloadService) {}
 
-    @Post()
-    async create(@Body() body: CreateDownloadDto): Promise<ytdl.videoFormat[]> {
-        const { formats } = await getInfo(body.url);
-        return filterFormats(formats, 'videoandaudio');
+    @Post('f')
+    async create(
+        @Body() { url }: FormatDownloadDto
+    ): Promise<ytdl.videoFormat[]> {
+        const validUrl = validateURL(url);
+        if (!validUrl) throw new BadRequestException('INVALID_YOUTUBE_URL');
+
+        const id = getVideoID(url);
+
+        const info = await getInfo(url);
+
+        // this.downloadService.create()
+
+        console.log(info);
+
+        return filterFormats(info.formats, 'videoandaudio');
     }
 
     @Post('video')
@@ -56,7 +71,7 @@ export class DownloadController {
                 recursive: true
             });
 
-            const file = downloadFromInfo(info);
+            const file = downloadFromInfo(info, { format });
             const ws = createWriteStream(
                 `${OUTPUT_PATH}/${info.videoDetails.author.name}/${info.videoDetails.title}-${info.videoDetails.videoId}.${format.container}`
             );
