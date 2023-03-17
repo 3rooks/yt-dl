@@ -15,13 +15,14 @@ export class Search {
     _id?: string;
 
     @Prop({ required: true, unique: true })
-    vidId: string;
+    id: string;
 
     @Prop({
+        type: Object,
         ref: Info.name,
         required: true
     })
-    info: string;
+    info: string | Info;
 }
 
 export const SearchSchema = SchemaFactory.createForClass(Search);

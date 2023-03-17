@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { FormatDownloadDto } from './dto/format-download.dto';
 import { UpdateDownloadDto } from './dto/update-download.dto';
 import { Download, DownloadDocument } from './schema/download.schema';
 
@@ -12,12 +11,8 @@ export class DownloadService {
         private readonly downloadModel: Model<DownloadDocument>
     ) {}
 
-    async create(data: FormatDownloadDto): Promise<Download> {
+    async create(data: Download): Promise<DownloadDocument> {
         return new this.downloadModel(data).save();
-    }
-
-    async saveDownload(videoDetails: Download): Promise<Download> {
-        return new this.downloadModel(videoDetails).save();
     }
 
     async findAll(): Promise<Download[]> {

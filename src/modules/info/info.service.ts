@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { videoInfo } from 'ytdl-core';
 import { Info, InfoDocument } from './schema/info.schema';
 
 @Injectable()
@@ -9,7 +10,7 @@ export class InfoService {
         @InjectModel(Info.name) private readonly InfoModel: Model<InfoDocument>
     ) {}
 
-    async create(info: object): Promise<InfoDocument> {
+    async create(info: videoInfo): Promise<InfoDocument> {
         return await new this.InfoModel(info).save();
     }
 

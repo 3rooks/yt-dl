@@ -10,85 +10,83 @@ import {
     Res
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { spawn } from 'child_process';
 import { Response } from 'express';
-import { createWriteStream } from 'fs';
-import { mkdir } from 'fs/promises';
-import { OUTPUT_PATH } from 'src/utils/paths.resource';
-import { pipeline } from 'stream/promises';
-import ytdl, {
-    chooseFormat,
-    downloadFromInfo,
-    filterFormats,
-    getInfo,
-    getVideoID,
-    validateURL
-} from 'ytdl-core';
+// import ffmpeg from 'ffmpeg-static';
+import {path} from '@ffmpeg-installer/ffmpeg'
+import { Writable } from 'stream';
+import { downloadFromInfo, getInfo, validateURL } from 'ytdl-core';
+import { InfoService } from '../info/info.service';
 import { DownloadService } from './download.service';
 import { DownloadVideoDto } from './dto/download-video.dto';
-import { FormatDownloadDto } from './dto/format-download.dto';
 import { UpdateDownloadDto } from './dto/update-download.dto';
 
 @ApiTags('Download')
 @Controller('download')
 export class DownloadController {
-    constructor(private readonly downloadService: DownloadService) {}
+    constructor(
+        private readonly downloadService: DownloadService,
+        private readonly infoService: InfoService
+    ) {}
 
-    @Post('f')
-    async create(
-        @Body() { url }: FormatDownloadDto
-    ): Promise<ytdl.videoFormat[]> {
+    @Post('video')
+    async download(@Body() { url }: DownloadVideoDto, @Res() res: Response) {
+        console.log("ASDASDASD", path)
         const validUrl = validateURL(url);
         if (!validUrl) throw new BadRequestException('INVALID_YOUTUBE_URL');
 
-        const id = getVideoID(url);
 
         const info = await getInfo(url);
 
-        // this.downloadService.create()
+        const video = downloadFromInfo(info, { filter: 'videoonly' });
+        const audio = downloadFromInfo(info, { filter: 'audioonly' });
 
-        console.log(info);
+        // const video = ytdl(url, { filter: 'videoonly' })
+        // const audio = ytdl(url, { filter: 'audioonly' });
+        // Start the ffmpeg child process
+        const ffmpegProcess = spawn(
+            path,
+            [
+                '-loglevel',
+                '8',
+                '-hide_banner',
+                '-i',
+                'pipe:3',
+                '-i',
+                'pipe:4',
+                '-map',
+                '0:a',
+                '-map',
+                '1:v',
+                '-c:v',
+                'copy',
+                'out.mp4'
+            ],
+            {
+                windowsHide: true,
+                stdio: [
+                    /* Standard: stdin, stdout, stderr */
+                    'inherit',
+                    'inherit',
+                    'inherit',
+                    /* Custom: pipe:3, pipe:4 */
+                    'pipe',
+                    'pipe'
+                ]
+            }
+        );
 
-        return filterFormats(info.formats, 'videoandaudio');
-    }
+        audio.pipe(ffmpegProcess.stdio[3] as Writable);
+        video.pipe(ffmpegProcess.stdio[4] as Writable);
 
-    @Post('video')
-    async down(
-        @Body() body: DownloadVideoDto,
-        @Res() res: Response
-    ): Promise<void> {
-        try {
-            const info = await getInfo(body.url);
+        // const results = await this.downloadService.create({
+        //     ...data,
+        //     info: (await this.infoService.create(data.info))._id
+        // });
 
-            const exist = await this.downloadService.findOneByVideoId(
-                info.videoDetails.videoId
-            );
-
-            if (exist) return res.sendFile(exist.file);
-
-            const format = chooseFormat(info.formats, { quality: body.itag });
-
-            await mkdir(`${OUTPUT_PATH}/${info.videoDetails.author.name}`, {
-                recursive: true
-            });
-
-            const file = downloadFromInfo(info, { format });
-            const ws = createWriteStream(
-                `${OUTPUT_PATH}/${info.videoDetails.author.name}/${info.videoDetails.title}-${info.videoDetails.videoId}.${format.container}`
-            );
-
-            await pipeline([file, ws]);
-
-            const results = await this.downloadService.saveDownload({
-                ...info.videoDetails,
-                file: `${OUTPUT_PATH}/${info.videoDetails.author.name}/${info.videoDetails.title}-${info.videoDetails.videoId}.${format.container}`
-            });
-
-            return res.sendFile(results.file, (err) => {
-                if (err) console.log(err);
-            });
-        } catch (error) {
-            console.log('ERROR', error);
-        }
+        // return res.sendFile(results.file);
+        // return new StreamableFile(createReadStream(results.file));
+        return res.send('ASDASDASD');
     }
 
     @Get('video')

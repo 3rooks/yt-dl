@@ -27,29 +27,25 @@ export class SearchController {
         if (!isValid) throw new BadRequestException('INVALID_YOUTUBE_URL');
 
         const id = getVideoID(url);
+
         const exist = await this.searchService.findByVideoId(id);
-        if (exist) {
-            const res = await this.infoService.findById(exist.info);
-            const formats = filterFormats(res.formats, 'videoandaudio');
-            return formats;
-        }
+        console.log(exist);
+        if (exist) return filterFormats(exist.info.formats, 'audioandvideo');
 
         const info = await getInfo(url);
 
         const { _id } = await this.infoService.create(info);
-
-        const results = await this.searchService.create({
-            vidId: id,
+        await this.searchService.create({
+            id,
             info: _id
         });
 
-        return results;
+        return filterFormats(info.formats, 'audioandvideo');
     }
 
     @Get()
     async findAll() {
         return await this.infoService.findAll();
-        // return this.searchService.findAll();
     }
 
     @Get(':id')
