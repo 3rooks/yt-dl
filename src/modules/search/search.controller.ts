@@ -7,8 +7,6 @@ import {
     Patch,
     Post
 } from '@nestjs/common';
-import { BadRequestException } from '@nestjs/common/exceptions';
-import { filterFormats, getInfo, getVideoID, validateURL } from 'ytdl-core';
 import { InfoService } from '../info/info.service';
 import { CreateSearchDto } from './dto/create-search.dto';
 import { UpdateSearchDto } from './dto/update-search.dto';
@@ -23,24 +21,19 @@ export class SearchController {
 
     @Post()
     async create(@Body() { url }: CreateSearchDto) {
-        const isValid = validateURL(url);
-        if (!isValid) throw new BadRequestException('INVALID_YOUTUBE_URL');
-
-        const id = getVideoID(url);
-
-        const exist = await this.searchService.findByVideoId(id);
-        console.log(exist);
-        if (exist) return filterFormats(exist.info.formats, 'audioandvideo');
-
-        const info = await getInfo(url);
-
-        const { _id } = await this.infoService.create(info);
-        await this.searchService.create({
-            id,
-            info: _id
-        });
-
-        return filterFormats(info.formats, 'audioandvideo');
+        // const isValid = validateURL(url);
+        // if (!isValid) throw new BadRequestException('INVALID_YOUTUBE_URL');
+        // const id = getVideoID(url);
+        // const exist = await this.searchService.findByVideoId(id);
+        // console.log(exist);
+        // if (exist) return filterFormats(exist.info.formats, 'audioandvideo');
+        // const info = await getInfo(url);
+        // const { _id } = await this.infoService.create(info);
+        // await this.searchService.create({
+        //     id,
+        //     info: _id
+        // });
+        // return filterFormats(info.formats, 'audioandvideo');
     }
 
     @Get()

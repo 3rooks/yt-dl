@@ -1,8 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Info } from 'src/modules/info/schema/info.schema';
-import { v4 as uuidv4 } from 'uuid';
-import { MoreVideoDetails, videoFormat } from 'ytdl-core';
+import * as uuid from 'uuid-random';
+// import { MoreVideoDetails, videoFormat } from 'ytdl-core';
 
 export type DownloadDocument = HydratedDocument<Download>;
 
@@ -12,20 +11,20 @@ export type DownloadDocument = HydratedDocument<Download>;
     versionKey: false
 })
 export class Download {
-    @Prop({ unique: true, default: () => uuidv4() })
+    @Prop({ unique: true, default: () => uuid() })
     public readonly _id?: string;
 
     @Prop({ unique: true, required: true })
     public readonly id: string;
 
-    @Prop({ type: Object, required: true })
-    public readonly details: MoreVideoDetails;
+    // @Prop({ type: Object, required: true })
+    // public readonly details: MoreVideoDetails;
 
-    @Prop({ ref: Info.name, required: true })
-    public readonly info: string;
+    // @Prop({ ref: Info.name, required: true })
+    // public readonly info: string;
 
-    @Prop({ type: Object, required: true })
-    public readonly format: videoFormat;
+    // @Prop({ type: Object, required: true })
+    // public readonly format: videoFormat;
 
     @Prop({ unique: true, required: true })
     public readonly file: string;

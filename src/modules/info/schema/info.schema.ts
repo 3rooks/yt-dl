@@ -1,17 +1,17 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
-import {
-    audioTrack,
-    captionTrack,
-    MicroformatRenderer,
-    MoreVideoDetails,
-    relatedVideo,
-    translationLanguage,
-    VideoDetails,
-    videoFormat,
-    videoInfo
-} from 'ytdl-core';
+import * as uuid from 'uuid-random';
+// import {
+//     audioTrack,
+//     captionTrack,
+//     MicroformatRenderer,
+//     MoreVideoDetails,
+//     relatedVideo,
+//     translationLanguage,
+//     VideoDetails,
+//     videoFormat,
+//     videoInfo
+// } from 'ytdl-core';
 
 export type InfoDocument = HydratedDocument<Info>;
 
@@ -20,8 +20,8 @@ export type InfoDocument = HydratedDocument<Info>;
     timestamps: true,
     versionKey: false
 })
-export class Info implements videoInfo {
-    @Prop({ unique: true, default: () => uuidv4() })
+export class Info {
+    @Prop({ unique: true, default: () => uuid() })
     _id?: string;
 
     @Prop()
@@ -354,62 +354,62 @@ export class Info implements videoInfo {
     @Prop()
     html5player: string;
 
-    @Prop()
-    formats: videoFormat[];
+    // @Prop()
+    // formats: videoFormat[];
 
-    @Prop()
-    related_videos: relatedVideo[];
+    // @Prop()
+    // related_videos: relatedVideo[];
 
-    @Prop()
-    no_embed_allowed?: boolean;
+    // @Prop()
+    // no_embed_allowed?: boolean;
 
-    @Prop({ type: Object })
-    player_response: {
-        playabilityStatus: {
-            status: string;
-            playableInEmbed: boolean;
-            miniplayer: {
-                miniplayerRenderer: {
-                    playbackMode: string;
-                };
-            };
-            contextParams: string;
-        };
-        streamingData: {
-            expiresInSeconds: string;
-            formats: {}[];
-            adaptiveFormats: {}[];
-        };
-        captions?: {
-            playerCaptionsRenderer: {
-                baseUrl: string;
-                visibility: string;
-            };
-            playerCaptionsTracklistRenderer: {
-                captionTracks: captionTrack[];
-                audioTracks: audioTrack[];
-                translationLanguages: translationLanguage[];
-                defaultAudioTrackIndex: number;
-            };
-        };
-        microformat: {
-            playerMicroformatRenderer: MicroformatRenderer;
-        };
-        videoDetails: VideoDetails;
-        playerConfig: {
-            audioConfig: {
-                loudnessDb: number;
-                perceptualLoudnessDb: number;
-                enablePerFormatLoudness: boolean;
-            };
-            streamSelectionConfig: { maxBitrate: string };
-            mediaCommonConfig: { dynamicReadaheadConfig: {}[] };
-            webPlayerConfig: { webPlayerActionsPorting: {}[] };
-        };
-    };
+    // @Prop({ type: Object })
+    // player_response: {
+    //     playabilityStatus: {
+    //         status: string;
+    //         playableInEmbed: boolean;
+    //         miniplayer: {
+    //             miniplayerRenderer: {
+    //                 playbackMode: string;
+    //             };
+    //         };
+    //         contextParams: string;
+    //     };
+    //     streamingData: {
+    //         expiresInSeconds: string;
+    //         formats: {}[];
+    //         adaptiveFormats: {}[];
+    //     };
+    //     captions?: {
+    //         playerCaptionsRenderer: {
+    //             baseUrl: string;
+    //             visibility: string;
+    //         };
+    //         playerCaptionsTracklistRenderer: {
+    //             captionTracks: captionTrack[];
+    //             audioTracks: audioTrack[];
+    //             translationLanguages: translationLanguage[];
+    //             defaultAudioTrackIndex: number;
+    //         };
+    //     };
+    //     microformat: {
+    //         playerMicroformatRenderer: MicroformatRenderer;
+    //     };
+    //     videoDetails: VideoDetails;
+    //     playerConfig: {
+    //         audioConfig: {
+    //             loudnessDb: number;
+    //             perceptualLoudnessDb: number;
+    //             enablePerFormatLoudness: boolean;
+    //         };
+    //         streamSelectionConfig: { maxBitrate: string };
+    //         mediaCommonConfig: { dynamicReadaheadConfig: {}[] };
+    //         webPlayerConfig: { webPlayerActionsPorting: {}[] };
+    //     };
+    // };
 
-    @Prop({ type: Object })
-    videoDetails: MoreVideoDetails;
+    // @Prop({ type: Object })
+    // videoDetails: MoreVideoDetails;
 }
 
 export const InfoSchema = SchemaFactory.createForClass(Info);

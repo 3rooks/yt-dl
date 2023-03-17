@@ -1,53 +1,26 @@
-// Buildin with nodejs
-import { spawn } from 'child_process';
-import ffmpeg from 'ffmpeg-static';
-import { Writable } from 'stream';
-import { downloadFromInfo, getInfo } from 'ytdl-core';
+import { path } from '@ffmpeg-installer/ffmpeg';
+// import ffprobe from '@ffprobe-installer/ffprobe';
+import * as ffmpeg from 'fluent-ffmpeg';
+import { OUTPUT_PATH } from 'src/utils/paths.resource';
+import * as ytdl from 'ytdl-core';
 
-export const Down = async ()=>{
+export const Down = (link: string) => {
     try {
-        
-    const url = 'https://youtube.com/shorts/CrzpsSJuNE4?feature=share';
+        ffmpeg.setFfmpegPath(path);
+        // setFfprobePath(ffprobe.path);
 
-    const info = await getInfo(url);
+        const audio = ytdl(link, { filter: 'audioonly' });
+        const video = ytdl(link, { filter: 'videoonly' });
 
-    const video = downloadFromInfo(info, {filter:"videoonly"})
-    const audio = downloadFromInfo(info, {filter: 'audioonly'})
-    
-    // const video = ytdl(url, { filter: 'videoonly' })
-    // const audio = ytdl(url, { filter: 'audioonly' });
-    // Start the ffmpeg child process
-    const ffmpegProcess = spawn(
-        ffmpeg,
-        [
-            // Remove ffmpeg's console spamming
-        '-loglevel',  '8', '-hide_banner',
-        // Set inputs
-         '-i', 'pipe:3',
-         '-i', 'pipe:4',
-         // Map audio & video from streams
-         '-map', '0:a',
-         '-map', '1:v',
-         // Keep encoding
-         '-c:v', 'copy',
-         // Define output container
-         'out.mp4'
-        ],
-        {
-            windowsHide: true,
-        stdio:  [
-            /* Standard: stdin, stdout, stderr */
-            'inherit', 'inherit', 'inherit',
-            /* Custom: pipe:3, pipe:4 */
-            'pipe', 'pipe'
-        ],
+        ffmpeg()
+            .addInput(audio)
+            .addInput(
+                OUTPUT_PATH + '/ Ангелина топ 👍/Пикачу 🐱-FaHDgqXiDJ4.mp4'
+            )
+            .format('mp4')
+            .saveToFile('ouput.mp4')
+            .on('end', () => console.log('FINOSHHEEEED'));
+    } catch (error) {
+        throw new Error(`ERROR_DOWNLOAD: ${error.message} - ${error.stack}`);
     }
-    );
-    
-    audio.pipe(ffmpegProcess.stdio[3] as Writable);
-    video.pipe(ffmpegProcess.stdio[4] as Writable);
-} catch (error) {
-            console.log('ERRORROR', error.stack)
-}
-    
-}
+};

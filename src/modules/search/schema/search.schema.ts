@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Info } from 'src/modules/info/schema/info.schema';
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid-random';
 
 export type SearchDocument = HydratedDocument<Search>;
 
@@ -11,7 +11,7 @@ export type SearchDocument = HydratedDocument<Search>;
     versionKey: false
 })
 export class Search {
-    @Prop({ unique: true, default: () => uuidv4() })
+    @Prop({ unique: true, default: () => uuid() })
     _id?: string;
 
     @Prop({ required: true, unique: true })
