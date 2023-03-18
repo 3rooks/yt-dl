@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { eve, ffmpegDownloader } from 'src/lib/ffmpeg-download';
 import { ytdlDownloader } from 'src/lib/ytdl-downloader';
 import * as ytdl from 'ytdl-core';
 import { InfoService } from '../info/info.service';
@@ -30,11 +31,12 @@ export class DownloadController {
         try {
             const id = ytdl.getVideoID(url);
             const info = await ytdl.getInfo(url);
-            const { outputAudio, outputVideo, outputFile } =
-                await ytdlDownloader(info);
+            const paths = await ytdlDownloader(info);
+            await ffmpegDownloader(paths);
 
-            console.log(outputAudio, outputVideo, outputFile);
-            return res.send('ASD');
+            eve.on('ended', (file) => {
+                return res.sendFile(file);
+            });
         } catch (error) {
             console.log('RRRRRR', error.message, error.stack);
         }
