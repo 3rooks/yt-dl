@@ -10,7 +10,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { Down } from 'src/lib/download';
+import { ytdlDownloader } from 'src/lib/ytdl-downloader';
+import * as ytdl from 'ytdl-core';
 import { InfoService } from '../info/info.service';
 import { DownloadService } from './download.service';
 import { DownloadVideoDto } from './dto/download-video.dto';
@@ -27,7 +28,11 @@ export class DownloadController {
     @Post('video')
     async download(@Body() { url }: DownloadVideoDto, @Res() res: Response) {
         try {
-            Down(url);
+            const id = ytdl.getVideoID(url);
+            const info = await ytdl.getInfo(url);
+            const { outputAudio, outputVideo } = await ytdlDownloader(info);
+            // await Down()
+
             return res.send('ASD');
         } catch (error) {
             console.log('RRRRRR', error.message, error.stack);
