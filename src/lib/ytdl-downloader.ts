@@ -18,7 +18,7 @@ export const ytdlDownloader = async (
             quality: QUALITIES.HIGHESTVIDEO
         });
 
-        const { outputAudio, outputVideo } = await outputPaths(
+        const { outputAudio, outputVideo, outputFile } = await outputPaths(
             info,
             audioFormat,
             videoFormat
@@ -37,7 +37,7 @@ export const ytdlDownloader = async (
         await pipeline([audioReadable, audioWriteable]);
         await pipeline([videoReadable, videoWriteable]);
 
-        return { outputAudio, outputVideo };
+        return { outputAudio, outputVideo, outputFile };
     } catch (error) {
         throw new Error(`ERROR_YTDL: ${error.message} - ${error.stack}`);
     }

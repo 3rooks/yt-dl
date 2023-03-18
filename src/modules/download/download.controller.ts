@@ -30,9 +30,10 @@ export class DownloadController {
         try {
             const id = ytdl.getVideoID(url);
             const info = await ytdl.getInfo(url);
-            const { outputAudio, outputVideo } = await ytdlDownloader(info);
-            // await Down()
+            const { outputAudio, outputVideo, outputFile } =
+                await ytdlDownloader(info);
 
+            console.log(outputAudio, outputVideo, outputFile);
             return res.send('ASD');
         } catch (error) {
             console.log('RRRRRR', error.message, error.stack);

@@ -1,21 +1,19 @@
 import { path } from '@ffmpeg-installer/ffmpeg';
 import * as ffmpeg from 'fluent-ffmpeg';
-import { resolve } from 'path';
+import { FilePathsTemp } from './ytdl-paths';
 
-const au = resolve(__dirname, '../../go.webm');
-const vi = resolve(__dirname, '../../gov.mp4');
-
-export const Down = async (link?: string) => {
+export const ffmpegDownloader = async (paths: FilePathsTemp) => {
     try {
         ffmpeg.setFfmpegPath(path);
+        const { outputAudio, outputVideo, outputFile } = paths;
 
         ffmpeg()
-            .addInput(au) //audio
-            .addInput(vi) //video
+            .addInput(outputAudio) // audio
+            .addInput(outputVideo) // video
             .format('mp4')
             .saveToFile('ouput.mp4')
-            .on('end', () => console.log('FINOSHHEEEED'));
+            .on('end', () => console.log('FINISHHEEEED'));
     } catch (error) {
-        throw new Error(`ERROR_DOWNLOAD: ${error.message} - ${error.stack}`);
+        throw new Error(`ERROR_FFMPEG: ${error.message} - ${error.stack}`);
     }
 };

@@ -5,10 +5,12 @@ import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { videoFormat, videoInfo } from 'ytdl-core';
 
 const TEMP = 'temp';
+const FORMAT = 'mp4';
 
 export interface FilePathsTemp {
     outputAudio: string;
     outputVideo: string;
+    outputFile: string;
 }
 
 export const outputPaths = async (
@@ -29,9 +31,12 @@ export const outputPaths = async (
         `audio=${videoDetails.title}-${videoDetails.videoId}.${audioFormat.container}`.trim();
     const VIDEO_TEMPLATE_FILE =
         `video=${videoDetails.title}-${videoDetails.videoId}.${videoFormat.container}`.trim();
+    const FILE_TEMPLATE =
+        `${videoDetails.title}-${videoDetails.videoId}.${FORMAT}`.trim();
 
     const outputAudio = join(FOLDER_PATH, AUDIO_TEMPLATE_FILE).trim();
     const outputVideo = join(FOLDER_PATH, VIDEO_TEMPLATE_FILE).trim();
+    const outputFile = join(FOLDER_PATH, FILE_TEMPLATE).trim();
 
-    return { outputAudio, outputVideo };
+    return { outputAudio, outputVideo, outputFile };
 };
