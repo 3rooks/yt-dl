@@ -19,8 +19,8 @@ export class DownloadService {
         return this.downloadModel.find().exec();
     }
 
-    findOneByVideoId(id: string): Promise<Download> {
-        return this.downloadModel.findOne({ videoId: id }).exec();
+    findOneByVideoId(id: string): Promise<DownloadDocument> {
+        return this.downloadModel.findOne({ id }).exec();
     }
 
     update(id: number, updateDownloadDto: UpdateDownloadDto) {

@@ -1,36 +1,41 @@
 import { path } from '@ffmpeg-installer/ffmpeg';
 import * as ffmpeg from 'fluent-ffmpeg';
-import { createWriteStream } from 'fs';
-// import { unlink } from 'fs/promises';
-import { EventEmitter } from 'events';
+import { unlink } from 'fs/promises';
 import { FORMAT } from 'src/constants/video-formats';
 import { FilePathsTemp } from './ytdl-paths';
 
-export const eve = new EventEmitter();
+export const ffmpegDownloader = (paths: FilePathsTemp) => {
+    const { outputAudio, outputVideo, outputFile } = paths;
 
-export const ffmpegDownloader = async (paths: FilePathsTemp) => {
-    try {
-        const { outputAudio, outputVideo, outputFile } = paths;
+    const avdl = ffmpeg();
+    avdl.setFfmpegPath(path);
 
-        ffmpeg.setFfmpegPath(path);
+    avdl.addInput(outputAudio) // audio
+        .addInput(outputVideo) // video
+        .format(FORMAT.MP4)
+        .saveToFile(outputFile);
 
-        const out = createWriteStream(outputFile);
+    avdl.on('error', (error) => {
+        throw new Error(`ERROR_MERGE_VIDEO: ${error.message} - ${error.stack}`);
+    });
 
-        ffmpeg()
-            .addInput(outputAudio) // audio
-            .addInput(outputVideo) // video
-            .format(FORMAT.MP4)
-            .saveToFile(outputFile)
-            .on('error', (err) => console.log(err))
-            .on('end', () => {
-                eve.emit('ended', outputFile);
-                console.log('finish successfully');
-            })
-            .on('progress', (progress) => console.log(progress));
+    // avdl.on('start', (comand) => {
+    //     console.log(`${comand}`);
+    // });
 
-        // await unlink(outputAudio);
-        // await unlink(outputVideo);
-    } catch (error) {
-        throw new Error(`ERROR_FFMPEG: ${error.message} - ${error.stack}`);
-    }
+    // avdl.on('progress', (progress) => {
+    //     console.log(progress);
+    // });
+
+    avdl.on('end', async () => {
+        try {
+            console.log(`>> FINISHED`);
+            await unlink(outputAudio);
+            await unlink(outputVideo);
+        } catch (error) {
+            throw new Error(
+                `ERROR_UNLINK_FILES: ${error.message} - ${error.stack}`
+            );
+        }
+    });
 };
