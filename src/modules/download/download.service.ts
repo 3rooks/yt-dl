@@ -16,7 +16,7 @@ export class DownloadService {
     }
 
     async findAll(): Promise<Download[]> {
-        return this.downloadModel.find().exec();
+        return;
     }
 
     findOneByVideoId(id: string): Promise<DownloadDocument> {

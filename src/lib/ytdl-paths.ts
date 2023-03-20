@@ -1,5 +1,5 @@
 import { existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
+import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
@@ -20,17 +20,22 @@ export const outputPaths = async (
     videoFormat: videoFormat
 ): Promise<FilePathsTemp> => {
     const { videoDetails } = info;
-    const { title, videoId } = videoDetails;
+    const { channelId, ownerChannelName, videoId, title } = videoDetails;
     const { container: audioExt } = audioFormat;
     const { container: videoExt } = videoFormat;
 
-    const FOLDER_NAME = `${videoDetails.author.name}`.trim();
+    const FOLDER_NAME = `${ownerChannelName}-${channelId}`.trim();
 
     const TEMP_FILE = `${FOLDER_NAME}/${TEMP}`.trim();
     const TEMP_FOLDER = join(OUTPUT_PATH, TEMP_FILE).trim();
     const FOLDER_PATH = join(OUTPUT_PATH, FOLDER_NAME).trim();
 
     if (!existsSync(TEMP_FOLDER)) await mkdir(TEMP_FOLDER, { recursive: true });
+    await writeFile(
+        `${TEMP_FOLDER}/info-${Date.now()}.json`,
+        JSON.stringify(videoDetails.author, null, 4),
+        { encoding: 'utf8' }
+    );
 
     const AUDIO_TEMPLATE_FILE = `audio=${uuid()}.${audioExt}`.trim();
     const VIDEO_TEMPLATE_FILE = `video=${uuid()}.${videoExt}`.trim();
