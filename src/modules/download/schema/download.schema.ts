@@ -11,7 +11,7 @@ export class Download {
     @Prop({ unique: true, default: () => uuid() })
     public readonly _id?: string;
 
-    @Prop({ required: true })
+    @Prop({ unique: true, required: true })
     public readonly channelId: string;
 
     @Prop({ type: AuthorSchema, required: true })

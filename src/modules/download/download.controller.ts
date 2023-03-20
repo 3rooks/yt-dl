@@ -1,7 +1,7 @@
 import { Body, Controller, Post, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import * as ytdl from 'ytdl-core';
+import { getInfo, getVideoID } from 'ytdl-core';
 import { InfoService } from '../info/info.service';
 import { DownloadService } from './download.service';
 import { DownloadVideoDto } from './dto/download-video.dto';
@@ -10,38 +10,63 @@ import { DownloadVideoDto } from './dto/download-video.dto';
 @Controller('download')
 export class DownloadController {
     constructor(
-        private readonly dlService: DownloadService,
+        private readonly downloadService: DownloadService,
         private readonly infoService: InfoService
     ) {}
 
     @Post('video')
     async download(@Body() { url }: DownloadVideoDto, @Res() res: Response) {
         try {
-            const info = await ytdl.getInfo(url);
+            const { videoDetails } = await getInfo(url);
+            const { author, channelId } = videoDetails;
 
-            const a = await this.infoService.createInfo(info.videoDetails);
+            const exist = await this.downloadService.getByChannelId(channelId);
+            if (exist) {
+                const videoId = getVideoID(url);
+                const file = await this.downloadService.getVideoById(
+                    channelId,
+                    videoId
+                );
 
-            const b = await this.dlService.create({
-                authorInfo: info.videoDetails.author,
-                channelId: 'w'
+                console.log(file);
+                if (!file) {
+                    const filePath = await this.downloadService.downloadVideo(
+                        url
+                    );
+
+                    const doc = await this.downloadService.getByChannelId(
+                        channelId
+                    );
+
+                    const vid = await this.infoService.createInfo(videoDetails);
+
+                    doc.downloads.push({
+                        filePath,
+                        videoId,
+                        videoDetails: vid._id
+                    });
+
+                    await this.downloadService.updateById(doc._id, doc);
+
+                    return res.sendFile(filePath);
+                }
+                return res.sendFile(file);
+            }
+
+            const videoId = getVideoID(url);
+            const outputFile = await this.downloadService.downloadVideo(url);
+            const b = await this.downloadService.create({
+                channelId,
+                authorInfo: author
+            });
+            const a = await this.infoService.createInfo(videoDetails);
+            b.downloads.push({
+                filePath: outputFile,
+                videoId,
+                videoDetails: a._id
             });
 
-            // const paths = await ytdlDownloader(info);
-            // ffmpegMergeAudioVideo(paths);
-
-            // ffmpegVideo.on('end', async () => {
-            //     try {
-            //         const file = paths.outputFile.split('\\').pop();
-            //         console.log(`FINISHED => ${file}`);
-            //         await unlink(paths.outputAudio);
-            //         await unlink(paths.outputVideo);
-            //         return res.json({});
-            //     } catch (error) {
-            //         throw new Error(`ERROR_UNLINK_FILES`);
-            //     }
-            // });
-
-            return res.send('asdasdasd');
+            return res.sendFile(outputFile);
         } catch (error) {
             throw new Error(`[POST]Video: ${error.message} - ${error.stack}`);
         }
