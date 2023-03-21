@@ -12,6 +12,7 @@ import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
 
+
 @ApiTags('Download')
 @Controller('download')
 export class DownloadController {
@@ -106,15 +107,6 @@ export class DownloadController {
             channelId
         );
         console.log(videoIds.length);
-
-            
-
-
-
-
-
-
-
 
 
         return videoIds;

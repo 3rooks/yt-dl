@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { ClusterService } from './config/cluster/cluster.service';
 import { CONFIG } from './constants/config';
 
 async function bootstrap() {
@@ -24,6 +25,9 @@ async function bootstrap() {
         .build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('docs', app, document);
-    await app.listen(AppModule.port);
+
+    ClusterService.clusterize(async () => {
+        await app.listen(AppModule.port);
+    });
 }
 bootstrap();
