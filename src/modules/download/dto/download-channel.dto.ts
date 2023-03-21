@@ -5,6 +5,6 @@ export class DownloadChannelDto {
     @ApiProperty()
     @IsNotEmpty()
     @IsString()
-    // @IsUrl()
-    public readonly channel: string;
+    @IsUrl()
+    public readonly channelUrl: string;
 }

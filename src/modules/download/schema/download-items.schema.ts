@@ -10,7 +10,10 @@ export class DownloadItem {
     public readonly filePath: string;
 
     @Prop({ type: Object, required: true })
-    public readonly videoDetails: MoreVideoDetails;
+    public readonly videoDetails: VideoDetails;
 }
 
 export const DownloadItemSchema = SchemaFactory.createForClass(DownloadItem);
+
+interface VideoDetails
+    extends Omit<MoreVideoDetails, 'availableCountries' | 'author'> {}

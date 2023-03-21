@@ -98,9 +98,25 @@ export class DownloadController {
     }
 
     @Post('channel')
-    async downloadChannel(@Body() { channel }: DownloadChannelDto) {
-        const videoIds = await this.googleService.getVideosFromChannel(channel);
+    async downloadChannel(@Body() { channelUrl }: DownloadChannelDto) {
+        const channelId = await this.googleService.getChannelIdFromUrl(
+            channelUrl
+        );
+        const videoIds = await this.googleService.getVideosFromChannel(
+            channelId
+        );
         console.log(videoIds.length);
+
+            
+
+
+
+
+
+
+
+
+
         return videoIds;
     }
 }

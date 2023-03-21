@@ -19,7 +19,7 @@ export class DownloadService {
         @Inject('FFMPEG') private readonly ffmpeg: typeof ffmpegCore,
         @Inject('IMGDL') private readonly imgdl: typeof imgdlCore,
         @Inject('YTDL') private readonly ytdl: typeof ytdlCore,
-        @Inject('YTSR') private readonly ytsr: typeof ytsrCore,
+        @Inject('YTSR') private readonly ytsr: typeof ytsrCore
     ) {}
 
     async getByChannelId(channelId: string): Promise<Download> {
@@ -37,11 +37,13 @@ export class DownloadService {
         return this.downloadModel.findByIdAndUpdate(id, data);
     }
 
-    async donwloadManyVideos(url: string) {
-        const data = await this.ytsr.getFilters(url);
-        const a = data.get('');
+    async donwloadManyVideos(ids: string[]) {
+        
+        for(const id of ids) {
+           const out =  await this.downloadVideo(id)
+        }
 
-        console.log(data);
+
     }
 
     public async downloadVideo(url: string): Promise<string> {
@@ -85,7 +87,7 @@ export class DownloadService {
     }
 
     private async downloadImage(imgUrl: string, dest: string) {
-        const url = imgUrl.replace(/(-g=s)(\d+[0-9])/, '-g=s1080');
+        const url = imgUrl.replace(/=s\d+/, '=s1080');
 
         const { filename } = await this.imgdl.image({ url, dest });
 
@@ -123,10 +125,6 @@ export class DownloadService {
 
     async create(data: Download): Promise<Download> {
         return new this.downloadModel(data).save();
-    }
-
-    async findAll(): Promise<Download[]> {
-        return;
     }
 
     update(id: number, updateDownloadDto: object) {
