@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Info } from 'src/modules/info/schema/info.schema';
+import { MoreVideoDetails } from 'ytdl-core';
 
 @Schema({ _id: false, versionKey: false })
 export class DownloadItem {
@@ -9,8 +9,8 @@ export class DownloadItem {
     @Prop({ unique: true, required: true })
     public readonly filePath: string;
 
-    @Prop({ type: String, ref: Info.name, required: true })
-    public readonly videoDetails: string;
+    @Prop({ type: Object, required: true })
+    public readonly videoDetails: MoreVideoDetails;
 }
 
 export const DownloadItemSchema = SchemaFactory.createForClass(DownloadItem);

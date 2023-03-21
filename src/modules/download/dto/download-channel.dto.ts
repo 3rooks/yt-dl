@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
 
-export class FormatDownloadDto {
+export class DownloadChannelDto {
     @ApiProperty()
     @IsNotEmpty()
     @IsString()
-    @IsUrl()
-    public readonly url: string;
+    // @IsUrl()
+    public readonly channel: string;
 }
