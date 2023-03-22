@@ -112,13 +112,10 @@ export class DownloadService {
         return new this.downloadModel(data).save();
     }
 
-    formatVideoDetails(
-        videoDetails: ytdlCore.MoreVideoDetails
-    ): TypeVideoDetails {
-        const { author, availableCountries, ...obj } = videoDetails;
-        return obj;
+    async getVideoFileById(videoId: string) {
+        return await this.downloadModel.findOne(
+            { 'downloads.videoId': videoId },
+            { 'downloads.$': 1, _id: 0 }
+        );
     }
 }
-
-interface TypeVideoDetails
-    extends Omit<ytdlCore.MoreVideoDetails, 'availableCountries' | 'author'> {}

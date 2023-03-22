@@ -1,5 +1,8 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
+import { StreamableFile } from '@nestjs/common/file-stream';
 import { ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
+import { createReadStream } from 'fs';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import { changeAuthor } from 'src/utils/dl-fn/change-author';
 import { existVideo } from 'src/utils/dl-fn/exist-video';
@@ -56,14 +59,50 @@ export class DownloadController {
 
     @Post('channel')
     async downloadChannel(@Body() { channelUrl }: DownloadChannelDto) {
-        const channelId = await this.googleService.getChannelIdFromUrl(
-            channelUrl
-        );
-        const videoIds = await this.googleService.getVideosFromChannel(
-            channelId
-        );
-        console.log(videoIds.length);
+        try {
+            const channelId = await this.googleService.getChannelIdFromUrl(
+                channelUrl
+            );
+            const videoIds = await this.googleService.getVideosFromChannel(
+                channelId
+            );
+            console.log(videoIds.length);
 
-        return videoIds;
+            return videoIds;
+        } catch (error) {
+            throw Exception.create(error.message);
+        }
+    }
+
+    @Get('video/:id')
+    async getVideoFileById(
+        @Param('id') videoId: string,
+        @Res({ passthrough: true }) res: Response
+    ): Promise<StreamableFile> {
+        try {
+            const exist = await this.downloadService.getVideoFileById(videoId);
+
+            if (!exist) {
+                res.set({
+                    'Content-Type': 'application/json'
+                });
+
+                throw new Exception({
+                    status: 'NOT_FOUND',
+                    message: 'VIDEO_NOT_FOUND'
+                });
+            }
+
+            const { downloads } = exist;
+            res.set({
+                'Content-Type': 'video/mp4',
+                'Content-Disposition': `attachment; filename="${downloads[0].videoDetails.title}.mp4"`
+            });
+
+            const stream = createReadStream(downloads[0].filePath);
+            return new StreamableFile(stream);
+        } catch (error) {
+            throw Exception.create(error.message);
+        }
     }
 }
