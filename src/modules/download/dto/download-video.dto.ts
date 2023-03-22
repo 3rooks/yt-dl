@@ -6,5 +6,5 @@ export class DownloadVideoDto {
     @IsNotEmpty()
     @IsString()
     @IsUrl()
-    public readonly url: string;
+    public readonly videoUrl: string;
 }

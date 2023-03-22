@@ -37,40 +37,25 @@ export class DownloadService {
         return this.downloadModel.findByIdAndUpdate(id, data);
     }
 
-    async donwloadManyVideos(ids: string[]) {
-        
-        for(const id of ids) {
-           const out =  await this.downloadVideo(id)
-        }
+    async donwloadManyVideos(ids: string[]) {}
 
+    public async downloadVideo(
+        videoDetails: ytdlCore.MoreVideoDetails
+    ): Promise<string> {
+        const { videoId } = videoDetails;
 
-    }
-
-    public async downloadVideo(url: string): Promise<string> {
-        const info = await this.ytdl.getInfo(url);
-
-        const {
-            outputAudio,
-            outputVideo,
-            outputFile,
-            outputImage,
-            outputText
-        } = await outputPaths(info);
-
-        await this.downloadImage(
-            info.videoDetails.author.thumbnails[0].url,
-            outputImage
+        const { outputAudio, outputVideo, outputFile } = await outputPaths(
+            videoDetails
         );
-        await this.saveInfoTxt(info.videoDetails, outputText);
 
         const audioWriteable = createWriteStream(outputAudio);
-        const audioReadable = this.ytdl(url, {
+        const audioReadable = this.ytdl(videoId, {
             filter: 'audioonly',
             quality: 'highestaudio'
         });
 
         const videoWriteable = createWriteStream(outputVideo);
-        const videoReadable = this.ytdl(url, {
+        const videoReadable = this.ytdl(videoId, {
             filter: 'videoonly',
             quality: 'highestvideo'
         });
@@ -86,7 +71,7 @@ export class DownloadService {
         return outputFile;
     }
 
-    private async downloadImage(imgUrl: string, dest: string) {
+    async downloadImage(imgUrl: string, dest: string) {
         const url = imgUrl.replace(/=s\d+/, '=s1080');
 
         const { filename } = await this.imgdl.image({ url, dest });
@@ -94,7 +79,7 @@ export class DownloadService {
         return filename;
     }
 
-    private async saveInfoTxt(data: ytdlCore.MoreVideoDetails, output: string) {
+    async saveInfoTxt(data: ytdlCore.MoreVideoDetails, output: string) {
         await writeFile(output, JSON.stringify(data, null, 4), 'utf-8');
     }
 
@@ -127,11 +112,13 @@ export class DownloadService {
         return new this.downloadModel(data).save();
     }
 
-    update(id: number, updateDownloadDto: object) {
-        return `This action updates a #${id} download`;
-    }
-
-    remove(id: number) {
-        return `This action removes a #${id} download`;
+    formatVideoDetails(
+        videoDetails: ytdlCore.MoreVideoDetails
+    ): TypeVideoDetails {
+        const { author, availableCountries, ...obj } = videoDetails;
+        return obj;
     }
 }
+
+interface TypeVideoDetails
+    extends Omit<ytdlCore.MoreVideoDetails, 'availableCountries' | 'author'> {}

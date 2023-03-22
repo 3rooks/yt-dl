@@ -10,7 +10,13 @@ export class AuthorInfo implements Author {
     public readonly name: string;
 
     @Prop()
-    public readonly avatar: string;
+    public readonly user?: string;
+
+    @Prop()
+    public readonly channel_url: string;
+
+    @Prop()
+    public readonly user_url?: string;
 
     @Prop()
     public readonly thumbnails?: thumbnail[];
@@ -19,19 +25,13 @@ export class AuthorInfo implements Author {
     public readonly verified: boolean;
 
     @Prop()
-    public readonly user?: string;
-
-    @Prop()
-    public readonly channel_url: string;
+    public readonly subscriber_count?: number;
 
     @Prop()
     public readonly external_channel_url?: string;
 
     @Prop()
-    public readonly user_url?: string;
-
-    @Prop()
-    public readonly subscriber_count?: number;
+    public readonly avatar: string;
 }
 
 export const AuthorSchema = SchemaFactory.createForClass(AuthorInfo);

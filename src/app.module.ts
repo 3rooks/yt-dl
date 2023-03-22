@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClusterModule } from './config/cluster/cluster.module';
 import { DatabaseModule } from './config/database/database.module';
 import { CONFIG } from './constants/config';
 import { DownloadModule } from './modules/download/download.module';
-import { ClusterModule } from './config/cluster/cluster.module';
 
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         ClusterModule,
         DatabaseModule,
-        DownloadModule,
+        DownloadModule
     ]
 })
 export class AppModule {

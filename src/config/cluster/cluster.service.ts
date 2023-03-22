@@ -3,6 +3,11 @@ import { Cluster } from 'cluster';
 import * as os from 'os';
 const cluster: Cluster = require('node:cluster');
 
+/**
+ * Only Unix, Linux or macOS
+ * cluster.schedulingPolicy = cluster.SCHED_RR
+ */
+
 const numCPUs = os.cpus().length;
 
 @Injectable()

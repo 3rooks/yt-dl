@@ -4,7 +4,7 @@ import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import * as uuid from 'uuid-random';
-import { videoInfo } from 'ytdl-core';
+import { MoreVideoDetails } from 'ytdl-core';
 
 const TEMP = 'temp';
 
@@ -16,8 +16,9 @@ export interface FilePathsTemp {
     outputText: string;
 }
 
-export const outputPaths = async (info: videoInfo): Promise<FilePathsTemp> => {
-    const { videoDetails } = info;
+export const outputPaths = async (
+    videoDetails: MoreVideoDetails
+): Promise<FilePathsTemp> => {
     const { channelId, ownerChannelName, videoId, title } = videoDetails;
 
     const FOLDER_NAME = `${ownerChannelName}-${channelId}`.trim();
