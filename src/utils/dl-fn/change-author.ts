@@ -1,35 +1,38 @@
+import { IChannelInfo } from 'src/interfaces/channel-info.interface';
+import { IVideoInfo } from 'src/interfaces/video-info.interface';
 import { DownloadService } from 'src/modules/download/download.service';
 import { Download } from 'src/modules/download/schema/download.schema';
-import { MoreVideoDetails } from 'ytdl-core';
 import { Exception } from '../error/exception-handler';
 import { outputPaths } from '../ytdl-paths';
 
 export const changeAuthor = async (
     exist: Download,
-    videoDetails: MoreVideoDetails,
+    videoInfo: IVideoInfo,
+    channelInfo: IChannelInfo,
     downloadService: DownloadService
-): Promise<Download> => {
+) => {
     try {
         if (exist) {
-            const { authorInfo } = exist;
-            const { id, name, thumbnails } = authorInfo;
-
-            if (
-                id !== videoDetails.author.id ||
-                name !== videoDetails.author.name ||
-                thumbnails[0].url !== videoDetails.author.thumbnails[0].url
-            ) {
+            console.log("EXIST_INOT", exist)
+            if (channelInfo !== exist.channelInfo) {
+                console.log('EQ', channelInfo !== exist.channelInfo);
                 exist = await downloadService.updateById(exist._id, {
-                    authorInfo: videoDetails.author
+                    channelInfo
                 });
-                await downloadImageAndText(downloadService, videoDetails);
+                await downloadImageAndText(
+                    videoInfo,
+                    channelInfo,
+                    downloadService
+                );
+                return exist
             }
         } else {
             exist = await downloadService.create({
-                authorInfo: videoDetails.author,
-                channelId: videoDetails.channelId
+                id: channelInfo.channelId,
+                channelInfo
             });
-            await downloadImageAndText(downloadService, videoDetails);
+            await downloadImageAndText(videoInfo, channelInfo, downloadService);
+            return exist
         }
         return exist;
     } catch (error) {
@@ -38,19 +41,18 @@ export const changeAuthor = async (
 };
 
 const downloadImageAndText = async (
-    downloadService: DownloadService,
-    videoDetails: MoreVideoDetails
+    videoInfo: IVideoInfo,
+    channelInfo: IChannelInfo,
+    downloadService: DownloadService
 ): Promise<void> => {
     try {
-        const { outputText, outputImage } = await outputPaths(videoDetails);
+        const { outputText, outputImage } = await outputPaths(videoInfo);
 
         await downloadService.downloadImage(
-            videoDetails.author.thumbnails[
-                videoDetails.author.thumbnails.length - 1
-            ].url,
+            channelInfo.thumbnails[channelInfo.thumbnails.length - 1].url,
             outputImage
         );
-        await downloadService.saveInfoTxt(videoDetails, outputText);
+        await downloadService.saveInfoTxt(channelInfo, outputText);
     } catch (error) {
         throw Exception.create(error.message);
     }

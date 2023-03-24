@@ -1,24 +1,24 @@
+import { IVideoInfo } from 'src/interfaces/video-info.interface';
 import { DownloadService } from 'src/modules/download/download.service';
 import { Download } from 'src/modules/download/schema/download.schema';
 import { VideoDownload } from 'src/modules/download/schema/video-download.schema';
-import { MoreVideoDetails } from 'ytdl-core';
 import { Exception } from '../error/exception-handler';
 
 export const existVideo = async (
     exist: Download,
-    videoDetails: MoreVideoDetails,
+    videoInfo: IVideoInfo,
     downloadService: DownloadService
 ): Promise<VideoDownload[]> => {
     try {
-        const { videoId } = videoDetails;
+        const { videoId } = videoInfo;
         const existVideo = exist.downloads.find((e) => e.videoId === videoId);
 
         if (!existVideo) {
-            const output = await downloadService.downloadVideo(videoDetails);
+            const filePath = await downloadService.downloadVideo(videoInfo);
             exist.downloads.push({
-                filePath: output,
-                videoDetails,
-                videoId
+                videoId,
+                filePath,
+                videoInfo
             });
             await downloadService.updateById(exist._id, exist);
             return exist.downloads;

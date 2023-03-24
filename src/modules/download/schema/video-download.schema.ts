@@ -10,7 +10,7 @@ export class VideoDownload {
     public readonly filePath: string;
 
     @Prop({ type: VideoInfoSchema, required: true })
-    public readonly videoDetails: VideoInfo;
+    public readonly videoInfo: VideoInfo;
 }
 
 export const VideoDownloadSchema = SchemaFactory.createForClass(VideoDownload);

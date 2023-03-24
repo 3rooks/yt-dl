@@ -4,14 +4,11 @@ import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
-import { changeAuthor } from 'src/utils/dl-fn/change-author';
-import { existVideo } from 'src/utils/dl-fn/exist-video';
 import { Exception } from 'src/utils/error/exception-handler';
-import { getInfo, validateURL } from 'ytdl-core';
+import { getVideoId, getVideoIdValidated } from 'src/utils/get-video-id';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
-import { VideoDownload } from './schema/video-download.schema';
 
 @ApiTags('Download')
 @Controller('download')
@@ -22,36 +19,16 @@ export class DownloadController {
     ) {}
 
     @Post('video')
-    async download(
-        @Body() { videoUrl }: DownloadVideoDto
-    ): Promise<VideoDownload[]> {
+    async download(@Body() { videoUrl }: DownloadVideoDto) {
         try {
-            const isValid = validateURL(videoUrl);
-
-            if (!isValid)
-                throw new Exception({
-                    status: 'BAD_REQUEST',
-                    message: 'INVALID_YOUTUBE_URL'
-                });
-
-            const { videoDetails } = await getInfo(videoUrl);
-            const { channelId } = videoDetails;
-
-            let exist = await this.downloadService.getByChannelId(channelId);
-
-            exist = await changeAuthor(
-                exist,
-                videoDetails,
-                this.downloadService
+            const videoId = getVideoIdValidated(videoUrl);
+            const videoInfo = await this.googleService.getVideoInfo(videoId);
+            const channelInfo = await this.googleService.getChannelInfo(
+                videoInfo.channelId
             );
-
-            const results = await existVideo(
-                exist,
-                videoDetails,
-                this.downloadService
+            let exist = await this.downloadService.getByIdC(
+                videoInfo.channelId
             );
-
-            return results;
         } catch (error) {
             throw Exception.create(error.message);
         }
@@ -149,7 +126,7 @@ export class DownloadController {
             const { downloads } = exist;
             res.set({
                 'Content-Type': 'video/mp4',
-                'Content-Disposition': `attachment; filename="${downloads[0].videoDetails.title}.mp4"`
+                'Content-Disposition': `attachment; filename="${downloads[0].videoInfo.title}.mp4"`
             });
 
             const stream = createReadStream(downloads[0].filePath);
@@ -161,6 +138,7 @@ export class DownloadController {
 
     @Get('info')
     async channelInfo(@Body() { videoUrl }: DownloadVideoDto) {
-        return await this.googleService.getChannelIdFromUrl(videoUrl);
+        const id = getVideoId(videoUrl);
+        return await this.googleService.getVideoInfo(id);
     }
 }

@@ -12,6 +12,12 @@ export class VideoInfo implements IVideoInfo {
     @Prop({ unique: true, required: true })
     public readonly videoId: string;
 
+    @Prop({ unique: true, required: true })
+    public readonly channelId: string;
+
+    @Prop({ required: true })
+    public readonly channelTitle: string;
+
     @Prop({ required: true })
     public readonly title: string;
 

@@ -117,6 +117,8 @@ export class GoogleapiService {
             const videoInfo: IVideoInfo = {
                 kind: data.items[0].kind,
                 videoId: data.items[0].id,
+                channelId: data.items[0].snippet.channelId,
+                channelTitle: data.items[0].snippet.channelTitle,
                 title: data.items[0].snippet.title,
                 description: data.items[0].snippet.description,
                 upload: data.items[0].snippet.publishedAt,

@@ -5,6 +5,9 @@ import { createWriteStream } from 'fs';
 import { unlink, writeFile } from 'fs/promises';
 import * as imgdlCore from 'image-downloader';
 import { Model } from 'mongoose';
+import { IChannelInfo } from 'src/interfaces/channel-info.interface';
+import { IVideoInfo } from 'src/interfaces/video-info.interface';
+import { Exception } from 'src/utils/error/exception-handler';
 import { outputPaths } from 'src/utils/ytdl-paths';
 import { pipeline } from 'stream/promises';
 import * as ytdlCore from 'ytdl-core';
@@ -22,8 +25,8 @@ export class DownloadService {
         @Inject('YTSR') private readonly ytsr: typeof ytsrCore
     ) {}
 
-    async getByChannelId(channelId: string): Promise<Download> {
-        return await this.downloadModel.findOne({ channelId }).exec();
+    async getByIdC(id: string): Promise<Download> {
+        return await this.downloadModel.findOne({ id }).exec();
     }
 
     async updateById(id: string, data: object) {
@@ -33,8 +36,8 @@ export class DownloadService {
     async donwloadManyVideos(ids: string[]) {
         const downloadPromises = ids.map(async (id) => {
             const { videoDetails } = await this.ytdl.getInfo(id);
-            const filePath = await this.downloadVideo(videoDetails);
-            return { videoId: id, filePath, videoDetails };
+            // const filePath = await this.downloadVideo();
+            // return { videoId: id, filePath, videoDetails };
         });
 
         const results = await Promise.all(downloadPromises);
@@ -42,36 +45,40 @@ export class DownloadService {
         return results;
     }
 
-    public async downloadVideo(
-        videoDetails: ytdlCore.MoreVideoDetails
-    ): Promise<string> {
-        const { videoId } = videoDetails;
+    public async downloadVideo(videoInfo: IVideoInfo): Promise<string> {
+        try {
+            const { videoId } = videoInfo;
 
-        const { outputAudio, outputVideo, outputFile } = await outputPaths(
-            videoDetails
-        );
+            const { outputAudio, outputVideo, outputFile } = await outputPaths(
+                videoInfo
+            );
 
-        const audioWriteable = createWriteStream(outputAudio);
-        const audioReadable = this.ytdl(videoId, {
-            filter: 'audioonly',
-            quality: 'highestaudio'
-        });
+            console.log('ASDASD', outputAudio, outputVideo, outputFile);
 
-        const videoWriteable = createWriteStream(outputVideo);
-        const videoReadable = this.ytdl(videoId, {
-            filter: 'videoonly',
-            quality: 'highestvideo'
-        });
+            const audioWriteable = createWriteStream(outputAudio);
+            const audioReadable = this.ytdl(videoId, {
+                filter: 'audioonly',
+                quality: 'highestaudio'
+            });
 
-        await Promise.all([
-            pipeline([audioReadable, audioWriteable]),
-            pipeline([videoReadable, videoWriteable])
-        ]);
+            const videoWriteable = createWriteStream(outputVideo);
+            const videoReadable = this.ytdl(videoId, {
+                filter: 'videoonly',
+                quality: 'highestvideo'
+            });
 
-        await this.mergeAudioVideo(outputAudio, outputVideo, outputFile);
+            await Promise.all([
+                pipeline([audioReadable, audioWriteable]),
+                pipeline([videoReadable, videoWriteable])
+            ]);
 
-        console.log(`Finished => ${outputFile.split('\\').pop()}`);
-        return outputFile;
+            await this.mergeAudioVideo(outputAudio, outputVideo, outputFile);
+
+            console.log(`Finished => ${videoInfo.title}`);
+            return outputFile;
+        } catch (error) {
+            throw Exception.create(error.message);
+        }
     }
 
     async downloadImage(imgUrl: string, dest: string) {
@@ -82,7 +89,7 @@ export class DownloadService {
         return filename;
     }
 
-    async saveInfoTxt(data: ytdlCore.MoreVideoDetails, output: string) {
+    async saveInfoTxt(data: IChannelInfo, output: string) {
         await writeFile(output, JSON.stringify(data, null, 4), 'utf-8');
     }
 
