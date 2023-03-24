@@ -11,7 +11,7 @@ import { getInfo, validateURL } from 'ytdl-core';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
-import { DownloadItem } from './schema/download-items.schema';
+import { VideoDownload } from './schema/video-download.schema';
 
 @ApiTags('Download')
 @Controller('download')
@@ -24,7 +24,7 @@ export class DownloadController {
     @Post('video')
     async download(
         @Body() { videoUrl }: DownloadVideoDto
-    ): Promise<DownloadItem[]> {
+    ): Promise<VideoDownload[]> {
         try {
             const isValid = validateURL(videoUrl);
 
@@ -63,12 +63,65 @@ export class DownloadController {
             const channelId = await this.googleService.getChannelIdFromUrl(
                 channelUrl
             );
-            const videoIds = await this.googleService.getVideosFromChannel(
+
+            if (!channelId)
+                throw new Exception({
+                    status: 'NOT_FOUND',
+                    message: 'CHANNEL_NOT_FOUND'
+                });
+
+            const videoIds = await this.googleService.getAllVideosFromChannel(
                 channelId
             );
-            console.log(videoIds.length);
 
-            return videoIds;
+            // let exist = await this.downloadService.getByChannelId(channelId);
+
+            // exist = await changeAuthor(
+            //     exist,
+            //     videoDetails,
+            //     this.downloadService
+            // );
+
+            // // ***********************************************************************
+
+            // // Verificar si los videos ya existen en la lista de descarga
+            // const newDownloads = [];
+            // for (const videoId of videoIds) {
+            //     const videoExists = exist.downloads.some(
+            //         (download) => download.videoId === videoId
+            //     );
+            //     if (!videoExists) {
+            //         newDownloads.push(videoId);
+            //     }
+            // }
+
+            // // Descargar los videos que no existen en la lista de descarga
+            // if (newDownloads.length > 0) {
+            //     const results = await this.downloadService.donwloadManyVideos(
+            //         newDownloads
+            //     );
+
+            //     for (const result of results) {
+            //         exist.downloads.push(result);
+            //     }
+
+            //     await this.downloadService.updateById(exist._id, exist);
+            // }
+
+            // if (!existVideo) {
+            //     const results = await this.downloadService.donwloadManyVideos(
+            //         videoIds
+            //     );
+
+            //     for (const res of results) {
+            //         exist.downloads.push(res);
+            //     }
+
+            //     await this.downloadService.updateById(exist._id, exist);
+            //     return exist.downloads;
+            // }
+
+            return;
         } catch (error) {
             throw Exception.create(error.message);
         }
@@ -104,5 +157,10 @@ export class DownloadController {
         } catch (error) {
             throw Exception.create(error.message);
         }
+    }
+
+    @Get('info')
+    async channelInfo(@Body() { videoUrl }: DownloadVideoDto) {
+        return await this.googleService.getChannelIdFromUrl(videoUrl);
     }
 }

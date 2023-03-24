@@ -26,18 +26,21 @@ export class DownloadService {
         return await this.downloadModel.findOne({ channelId }).exec();
     }
 
-    async getVideoById(channelId: string, videoId: string): Promise<string> {
-        const doc = await this.getByChannelId(channelId);
-        const vid = doc.downloads.find((e) => e.videoId === videoId);
-        console.log(vid);
-        return vid.filePath;
-    }
-
     async updateById(id: string, data: object) {
         return this.downloadModel.findByIdAndUpdate(id, data);
     }
 
-    async donwloadManyVideos(ids: string[]) {}
+    async donwloadManyVideos(ids: string[]) {
+        const downloadPromises = ids.map(async (id) => {
+            const { videoDetails } = await this.ytdl.getInfo(id);
+            const filePath = await this.downloadVideo(videoDetails);
+            return { videoId: id, filePath, videoDetails };
+        });
+
+        const results = await Promise.all(downloadPromises);
+
+        return results;
+    }
 
     public async downloadVideo(
         videoDetails: ytdlCore.MoreVideoDetails

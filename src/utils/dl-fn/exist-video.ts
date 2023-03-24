@@ -1,6 +1,6 @@
 import { DownloadService } from 'src/modules/download/download.service';
-import { DownloadItem } from 'src/modules/download/schema/download-items.schema';
 import { Download } from 'src/modules/download/schema/download.schema';
+import { VideoDownload } from 'src/modules/download/schema/video-download.schema';
 import { MoreVideoDetails } from 'ytdl-core';
 import { Exception } from '../error/exception-handler';
 
@@ -8,7 +8,7 @@ export const existVideo = async (
     exist: Download,
     videoDetails: MoreVideoDetails,
     downloadService: DownloadService
-): Promise<DownloadItem[]> => {
+): Promise<VideoDownload[]> => {
     try {
         const { videoId } = videoDetails;
         const existVideo = exist.downloads.find((e) => e.videoId === videoId);
