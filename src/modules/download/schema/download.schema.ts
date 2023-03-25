@@ -1,8 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { IChannelInfo } from 'src/interfaces/channel-info.interface';
+import { Downloads } from 'src/interfaces/downloads.interface';
 import * as uuid from 'uuid-random';
-import { ChannelInfo, ChannelInfoSchema } from './channel-info.schema';
-import { VideoDownload, VideoDownloadSchema } from './video-download.schema';
 
 export type DownloadDocument = HydratedDocument<Download>;
 
@@ -14,11 +14,11 @@ export class Download {
     @Prop({ unique: true, required: true })
     public readonly id: string;
 
-    @Prop({ type: ChannelInfoSchema, required: true })
-    public readonly channelInfo: ChannelInfo;
+    @Prop({ type: Object, required: true })
+    public readonly channelInfo: IChannelInfo;
 
-    @Prop({ type: [VideoDownloadSchema] })
-    public readonly downloads?: VideoDownload[];
+    @Prop({ type: Array<Downloads> })
+    public readonly downloads?: Downloads[];
 }
 
 export const DownloadSchema = SchemaFactory.createForClass(Download);

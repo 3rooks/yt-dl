@@ -12,27 +12,27 @@ export const changeAuthor = async (
     downloadService: DownloadService
 ) => {
     try {
-        if (exist) {
-            console.log("EXIST_INOT", exist)
-            if (channelInfo !== exist.channelInfo) {
-                console.log('EQ', channelInfo !== exist.channelInfo);
-                exist = await downloadService.updateById(exist._id, {
-                    channelInfo
-                });
+        if (!exist) {
+            await downloadImageAndText(videoInfo, channelInfo, downloadService);
+            exist = await downloadService.create({
+                id: channelInfo.channelId,
+                channelInfo,
+                downloads: []
+            });
+        } else {
+            if (
+                JSON.stringify(channelInfo) !==
+                JSON.stringify(exist.channelInfo)
+            ) {
                 await downloadImageAndText(
                     videoInfo,
                     channelInfo,
                     downloadService
                 );
-                return exist
+                exist = await downloadService.updateById(exist._id, {
+                    channelInfo
+                });
             }
-        } else {
-            exist = await downloadService.create({
-                id: channelInfo.channelId,
-                channelInfo
-            });
-            await downloadImageAndText(videoInfo, channelInfo, downloadService);
-            return exist
         }
         return exist;
     } catch (error) {
@@ -40,7 +40,7 @@ export const changeAuthor = async (
     }
 };
 
-const downloadImageAndText = async (
+export const downloadImageAndText = async (
     videoInfo: IVideoInfo,
     channelInfo: IChannelInfo,
     downloadService: DownloadService
@@ -49,7 +49,7 @@ const downloadImageAndText = async (
         const { outputText, outputImage } = await outputPaths(videoInfo);
 
         await downloadService.downloadImage(
-            channelInfo.thumbnails[channelInfo.thumbnails.length - 1].url,
+            channelInfo.thumbnails.high.url,
             outputImage
         );
         await downloadService.saveInfoTxt(channelInfo, outputText);

@@ -20,7 +20,11 @@ export const existVideo = async (
                 filePath,
                 videoInfo
             });
-            await downloadService.updateById(exist._id, exist);
+
+            await downloadService.updateById(exist._id, {
+                downloads: exist.downloads
+            });
+
             return exist.downloads;
         }
 

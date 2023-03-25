@@ -3,38 +3,50 @@ import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 
 @Schema({ _id: false, versionKey: false })
 export class ChannelInfo implements IChannelInfo {
-    @Prop()
+    @Prop({ required: true })
     public readonly kind: string;
 
-    @Prop()
+    @Prop({ unique: true, required: true })
     public readonly channelId: string;
 
-    @Prop()
+    @Prop({ required: true })
     public readonly name: string;
 
-    @Prop()
-    public readonly user: string;
+    @Prop({ required: true })
+    public readonly user: string | undefined;
 
-    @Prop()
+    @Prop({ required: true })
     public readonly channel_url: string;
 
     @Prop({ required: true })
     public readonly user_url: string;
 
-    @Prop()
+    @Prop({ required: true })
     public readonly description: string;
 
-    @Prop()
+    @Prop({ required: true })
     public readonly thumbnails: {
-        url: string;
-        width: number;
-        height: number;
-    }[];
+        default: {
+            url: string;
+            width: number;
+            height: number;
+        };
+        medium: {
+            url: string;
+            width: number;
+            height: number;
+        };
+        high: {
+            url: string;
+            width: number;
+            height: number;
+        };
+    };
 
-    @Prop()
+    @Prop({ required: true })
     public readonly video_count: number;
 
-    @Prop()
+    @Prop({ required: true })
     public readonly subscriber_count: number;
 }
 

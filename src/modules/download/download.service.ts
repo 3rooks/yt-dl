@@ -53,8 +53,6 @@ export class DownloadService {
                 videoInfo
             );
 
-            console.log('ASDASD', outputAudio, outputVideo, outputFile);
-
             const audioWriteable = createWriteStream(outputAudio);
             const audioReadable = this.ytdl(videoId, {
                 filter: 'audioonly',
@@ -83,7 +81,7 @@ export class DownloadService {
 
     async downloadImage(imgUrl: string, dest: string) {
         const url = imgUrl.replace(/=s\d+/, '=s1080');
-
+        console.log("URL", url)
         const { filename } = await this.imgdl.image({ url, dest });
 
         return filename;
@@ -118,7 +116,7 @@ export class DownloadService {
         });
     }
 
-    async create(data: Download): Promise<Download> {
+    async create(data: Download) {
         return new this.downloadModel(data).save();
     }
 

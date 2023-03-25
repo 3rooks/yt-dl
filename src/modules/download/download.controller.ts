@@ -4,8 +4,10 @@ import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
+import { changeAuthor } from 'src/utils/dl-fn/change-author';
+import { existVideo } from 'src/utils/dl-fn/exist-video';
 import { Exception } from 'src/utils/error/exception-handler';
-import { getVideoId, getVideoIdValidated } from 'src/utils/get-video-id';
+import { getVideoIdValidated } from 'src/utils/get-video-id';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
@@ -29,6 +31,69 @@ export class DownloadController {
             let exist = await this.downloadService.getByIdC(
                 videoInfo.channelId
             );
+
+            exist = await changeAuthor(
+                exist,
+                videoInfo,
+                channelInfo,
+                this.downloadService
+            );
+
+            const res = await existVideo(
+                exist,
+                videoInfo,
+                this.downloadService
+            );
+
+            return res;
+
+            // if (!exist) {
+            //     await downloadImageAndText(
+            //         videoInfo,
+            //         channelInfo,
+            //         this.downloadService
+            //     );
+            //     exist = await this.downloadService.create({
+            //         channelInfo,
+            //         id: channelInfo.channelId,
+            //         downloads: []
+            //     });
+            // } else {
+            //     if (
+            //         JSON.stringify(channelInfo) !==
+            //         JSON.stringify(exist.channelInfo)
+            //     ) {
+            //         await downloadImageAndText(
+            //             videoInfo,
+            //             channelInfo,
+            //             this.downloadService
+            //         );
+            //         await this.downloadService.updateById(exist._id, {
+            //             channelInfo
+            //         });
+            //     }
+            // }
+
+            // const existVideo = exist.downloads.find(
+            //     (v) => v.videoId === videoId
+            // );
+
+            // if (!existVideo) {
+            //     const output = await this.downloadService.downloadVideo(
+            //         videoInfo
+            //     );
+            //     exist.downloads.push({
+            //         filePath: output,
+            //         videoId,
+            //         videoInfo
+            //     });
+            //     await this.downloadService.updateById(exist._id, {
+            //         downloads: exist.downloads
+            //     });
+            //     return exist.downloads;
+            // }
+
+            // return exist.downloads;
         } catch (error) {
             throw Exception.create(error.message);
         }
@@ -138,7 +203,7 @@ export class DownloadController {
 
     @Get('info')
     async channelInfo(@Body() { videoUrl }: DownloadVideoDto) {
-        const id = getVideoId(videoUrl);
-        return await this.googleService.getVideoInfo(id);
+        const id = await this.googleService.getChannelIdFromUrl(videoUrl);
+        return await this.googleService.getChannelInfo(id);
     }
 }
