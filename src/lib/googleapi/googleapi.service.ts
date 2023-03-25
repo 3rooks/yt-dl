@@ -43,7 +43,7 @@ export class GoogleapiService {
             return videoIds;
             // `https://www.youtube.com/watch?v=${videoId}`
         } catch (error) {
-            throw Exception.create(error.message);
+            throw Exception.catch(error.message);
         }
     }
 
@@ -69,7 +69,7 @@ export class GoogleapiService {
 
             return channelId;
         } catch (error) {
-            throw Exception.create(error.message);
+            throw Exception.catch(error.message);
         }
     }
 
@@ -128,7 +128,7 @@ export class GoogleapiService {
 
             return videoInfo;
         } catch (error) {
-            throw Exception.create(error.message);
+            throw Exception.catch(error.message);
         }
     }
 }

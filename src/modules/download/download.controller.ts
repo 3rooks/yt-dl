@@ -7,7 +7,7 @@ import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import { changeAuthor } from 'src/utils/dl-fn/change-author';
 import { existVideo } from 'src/utils/dl-fn/exist-video';
 import { Exception } from 'src/utils/error/exception-handler';
-import { getVideoIdValidated } from 'src/utils/get-video-id';
+import { validateAndExtractVideoId } from 'src/utils/get-video-id';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
@@ -23,7 +23,7 @@ export class DownloadController {
     @Post('video')
     async download(@Body() { videoUrl }: DownloadVideoDto) {
         try {
-            const videoId = getVideoIdValidated(videoUrl);
+            const videoId = validateAndExtractVideoId(videoUrl);
             const videoInfo = await this.googleService.getVideoInfo(videoId);
             const channelInfo = await this.googleService.getChannelInfo(
                 videoInfo.channelId
@@ -46,56 +46,8 @@ export class DownloadController {
             );
 
             return res;
-
-            // if (!exist) {
-            //     await downloadImageAndText(
-            //         videoInfo,
-            //         channelInfo,
-            //         this.downloadService
-            //     );
-            //     exist = await this.downloadService.create({
-            //         channelInfo,
-            //         id: channelInfo.channelId,
-            //         downloads: []
-            //     });
-            // } else {
-            //     if (
-            //         JSON.stringify(channelInfo) !==
-            //         JSON.stringify(exist.channelInfo)
-            //     ) {
-            //         await downloadImageAndText(
-            //             videoInfo,
-            //             channelInfo,
-            //             this.downloadService
-            //         );
-            //         await this.downloadService.updateById(exist._id, {
-            //             channelInfo
-            //         });
-            //     }
-            // }
-
-            // const existVideo = exist.downloads.find(
-            //     (v) => v.videoId === videoId
-            // );
-
-            // if (!existVideo) {
-            //     const output = await this.downloadService.downloadVideo(
-            //         videoInfo
-            //     );
-            //     exist.downloads.push({
-            //         filePath: output,
-            //         videoId,
-            //         videoInfo
-            //     });
-            //     await this.downloadService.updateById(exist._id, {
-            //         downloads: exist.downloads
-            //     });
-            //     return exist.downloads;
-            // }
-
-            // return exist.downloads;
         } catch (error) {
-            throw Exception.create(error.message);
+            throw Exception.catch(error.message);
         }
     }
 
@@ -165,7 +117,7 @@ export class DownloadController {
 
             return;
         } catch (error) {
-            throw Exception.create(error.message);
+            throw Exception.catch(error.message);
         }
     }
 
@@ -197,7 +149,7 @@ export class DownloadController {
             const stream = createReadStream(downloads[0].filePath);
             return new StreamableFile(stream);
         } catch (error) {
-            throw Exception.create(error.message);
+            throw Exception.catch(error.message);
         }
     }
 

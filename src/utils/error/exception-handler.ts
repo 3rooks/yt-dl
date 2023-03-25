@@ -2,18 +2,19 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 
 export class Exception extends Error {
     constructor({
-        status,
-        message
+        message,
+        status
     }: {
-        status: keyof typeof HttpStatus;
         message: string;
+        status: keyof typeof HttpStatus;
     }) {
-        super(`${status}-${message}`);
+        super(`${message} :|: ${status}`);
     }
 
-    public static create(error: string) {
-        const [status, message] = error.split('-');
-        if (status) throw new HttpException(message, HttpStatus[status]);
+    public static catch(error: string) {
+        const [message, status] = error.split(' :|: ');
+        if (message && status)
+            throw new HttpException(message, HttpStatus[status]);
         else throw new HttpException(message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

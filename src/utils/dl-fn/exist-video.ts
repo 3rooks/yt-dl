@@ -29,6 +29,6 @@ export const existVideo = async (
 
         return [existVideo];
     } catch (error) {
-        throw Exception.create(error.message);
+        throw Exception.catch(error.message);
     }
 };

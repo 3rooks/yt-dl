@@ -75,7 +75,7 @@ export class DownloadService {
             console.log(`Finished => ${videoInfo.title}`);
             return outputFile;
         } catch (error) {
-            throw Exception.create(error.message);
+            throw Exception.catch(error.message);
         }
     }
 

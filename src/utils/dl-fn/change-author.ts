@@ -36,7 +36,7 @@ export const changeAuthor = async (
         }
         return exist;
     } catch (error) {
-        throw Exception.create(error.message);
+        throw Exception.catch(error.message);
     }
 };
 
@@ -54,6 +54,6 @@ export const downloadImageAndText = async (
         );
         await downloadService.saveInfoTxt(channelInfo, outputText);
     } catch (error) {
-        throw Exception.create(error.message);
+        throw Exception.catch(error.message);
     }
 };
