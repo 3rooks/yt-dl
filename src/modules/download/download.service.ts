@@ -6,7 +6,7 @@ import { unlink, writeFile } from 'fs/promises';
 import * as imgdlCore from 'image-downloader';
 import { Model } from 'mongoose';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
-import { IVideoInfo } from 'src/interfaces/video-info.interface';
+import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { Exception } from 'src/utils/error/exception-handler';
 import { outputPaths } from 'src/utils/ytdl-paths';
 import { pipeline } from 'stream/promises';
@@ -81,7 +81,6 @@ export class DownloadService {
 
     async downloadImage(imgUrl: string, dest: string) {
         const url = imgUrl.replace(/=s\d+/, '=s1080');
-        console.log("URL", url)
         const { filename } = await this.imgdl.image({ url, dest });
 
         return filename;

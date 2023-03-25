@@ -2,16 +2,16 @@ export interface IChannelInfo {
     kind: string;
     channelId: string;
     name: string;
-    user: string | undefined;
+    user: string;
     channel_url: string;
     user_url: string;
     description: string;
-    thumbnails: ThumbnailInfo;
+    thumbnails: IThumbnailInfo;
     video_count: number;
     subscriber_count: number;
 }
 
-interface ThumbnailInfo {
+interface IThumbnailInfo {
     default: {
         url: string;
         width: number;

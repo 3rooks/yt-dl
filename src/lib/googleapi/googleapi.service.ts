@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
-import { IVideoInfo } from 'src/interfaces/video-info.interface';
+import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { Exception } from 'src/utils/error/exception-handler';
 import {
     extractChannelIdFromChannelUrl,
@@ -89,7 +89,7 @@ export class GoogleapiService {
             kind: data.items[0].kind,
             channelId: data.items[0].id,
             name: data.items[0].snippet.title,
-            user: data.items[0].snippet.customUrl,
+            user: data.items[0].snippet.customUrl || 'undefined',
             channel_url: `https://www.youtube.com/channel/${data.items[0].id}`,
             user_url: `https://www.youtube.com/${data.items[0].snippet.customUrl}`,
             description: data.items[0].snippet.description,

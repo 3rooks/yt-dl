@@ -2,7 +2,7 @@ import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
-import { IVideoInfo } from 'src/interfaces/video-info.interface';
+import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import * as uuid from 'uuid-random';
 
