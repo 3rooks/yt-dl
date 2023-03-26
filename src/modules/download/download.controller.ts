@@ -1,6 +1,16 @@
-import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    Inject,
+    Param,
+    Post,
+    Res
+} from '@nestjs/common';
 import { StreamableFile } from '@nestjs/common/file-stream';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { ApiTags } from '@nestjs/swagger';
+import { CronJob } from 'cron';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
@@ -13,13 +23,15 @@ import { outputTextImagePath } from 'src/utils/ytdl-paths';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
+import { FiltersDto } from './dto/filters.dto';
 
 @ApiTags('Download')
 @Controller('download')
 export class DownloadController {
     constructor(
         private readonly downloadService: DownloadService,
-        private readonly googleService: GoogleapiService
+        private readonly googleService: GoogleapiService,
+        @Inject(SchedulerRegistry) private schedulerRegistry: SchedulerRegistry
     ) {}
 
     @Post('video')
@@ -30,9 +42,7 @@ export class DownloadController {
             const channelInfo = await this.googleService.getChannelInfo(
                 videoInfo.channelId
             );
-            let exist = await this.downloadService.getByIdC(
-                videoInfo.channelId
-            );
+            let exist = await this.downloadService.getById(videoInfo.channelId);
 
             exist = await changeAuthor(
                 exist,
@@ -64,7 +74,7 @@ export class DownloadController {
                     status: 'NOT_FOUND'
                 });
 
-            let exist = await this.downloadService.getByIdC(channelId);
+            let exist = await this.downloadService.getById(channelId);
 
             if (!exist) {
                 const channelInfo = await this.googleService.getChannelInfo(
@@ -158,5 +168,52 @@ export class DownloadController {
         } catch (error) {
             throw Exception.catch(error.message);
         }
+    }
+
+    @Get('filters')
+    async asd(@Body() { filter }: FiltersDto) {
+        try {
+            const videoIds = await this.downloadService.getByFilters(filter);
+
+            const infosVideos: IVideoInfo[] = [];
+
+            for (const id of videoIds) {
+                const videoInfo = await this.googleService.getVideoInfoRandom(
+                    id
+                );
+                if (!videoInfo) continue;
+                infosVideos.push(videoInfo);
+            }
+
+            // const outputfiles =
+            //     this.downloadService.downloadVideosRandom(infosVideos);
+
+            // return outputfiles;
+        } catch (error) {
+            throw Exception.catch(error.message + error.stack);
+        }
+    }
+
+    private cronJob: CronJob;
+
+    @Post('start')
+    startJob() {
+        const pattern = '*/5 * * * * *'; // Ejecutar cada 5 segundos
+        this.cronJob = new CronJob(pattern, () => {
+            console.log('cada 5 segundos');
+        });
+        this.schedulerRegistry.addCronJob('my-job', this.cronJob);
+        this.cronJob.start();
+        return 'Job iniciado';
+    }
+
+    @Post('stop')
+    stopJob() {
+        if (this.cronJob) {
+            this.cronJob.stop();
+            this.schedulerRegistry.deleteCronJob('my-job');
+            this.cronJob = null;
+        }
+        return 'Job detenido';
     }
 }

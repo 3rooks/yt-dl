@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ScheduleModule } from '@nestjs/schedule';
 import { GoogleapiModule } from 'src/lib/googleapi/googleapi.module';
 import { FfmpegModule } from '../ffmpeg/ffmpeg.module';
 import { ImgdlModule } from '../imgdl/imgdl.module';
@@ -11,6 +12,7 @@ import { Download, DownloadSchema } from './schema/download.schema';
 
 @Module({
     imports: [
+        ScheduleModule.forRoot(),
         MongooseModule.forFeature([
             {
                 name: Download.name,

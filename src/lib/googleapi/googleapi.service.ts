@@ -124,6 +124,33 @@ export class GoogleapiService {
             throw Exception.catch(error.message);
         }
     }
+
+    async getVideoInfoRandom(videoId: string): Promise<IVideoInfo> {
+        try {
+            const { data } = await this.youtube.videos.list({
+                part: 'snippet',
+                id: videoId
+            });
+            
+            if (data.items[0].snippet.liveBroadcastContent !== 'none') return;
+
+            const videoInfo: IVideoInfo = {
+                kind: data.items[0].kind,
+                videoId: data.items[0].id,
+                channelId: data.items[0].snippet.channelId,
+                channelTitle: data.items[0].snippet.channelTitle,
+                title: data.items[0].snippet.title,
+                description: data.items[0].snippet.description,
+                upload: data.items[0].snippet.publishedAt,
+                embed: `https://www.youtube.com/embed/${data.items[0].id}`,
+                videoUrl: `https://www.youtube.com/watch?v=${data.items[0].id}`
+            };
+
+            return videoInfo;
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
+    }
 }
 
 /*

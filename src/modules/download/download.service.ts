@@ -11,6 +11,7 @@ import { Exception } from 'src/utils/error/exception-handler';
 import { fileExists } from 'src/utils/file-exists';
 import {
     outputAudioVideoFilePath,
+    outputAudioVideoFilePathRandom,
     outputTextImagePath
 } from 'src/utils/ytdl-paths';
 import { pipeline } from 'stream/promises';
@@ -29,8 +30,12 @@ export class DownloadService {
         @Inject('YTSR') private readonly ytsr: typeof ytsrCore
     ) {}
 
-    async getByIdC(id: string): Promise<Download> {
-        return await this.downloadModel.findOne({ id }).exec();
+    async create(data: Download) {
+        return new this.downloadModel(data).save();
+    }
+
+    async getById(channelId: string): Promise<Download> {
+        return await this.downloadModel.findOne({ id: channelId }).exec();
     }
 
     async updateById(id: string, data: object) {
@@ -43,6 +48,65 @@ export class DownloadService {
 
             const { outputAudio, outputVideo, outputFile } =
                 await outputAudioVideoFilePath(videoInfo);
+
+            if (await fileExists(outputFile)) return outputFile;
+
+            const audioWriteable = createWriteStream(outputAudio);
+            const audioReadable = this.ytdl(videoId, {
+                filter: 'audioonly',
+                quality: 'highestaudio'
+            });
+
+            const videoWriteable = createWriteStream(outputVideo);
+            const videoReadable = this.ytdl(videoId, {
+                filter: 'videoonly',
+                quality: 'highestvideo'
+            });
+
+            await Promise.all([
+                pipeline([audioReadable, audioWriteable]),
+                pipeline([videoReadable, videoWriteable])
+            ]);
+
+            await this.mergeAudioVideo(outputAudio, outputVideo, outputFile);
+
+            console.log(`Finished => ${videoInfo.title}`);
+            return outputFile;
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
+    }
+
+    public async downloadVideosRandom(
+        videoInfos: IVideoInfo[]
+    ): Promise<Downloads[]> {
+        try {
+            const videoPromises = videoInfos.map(async (videoInfo) => {
+                const output = await this.downloadVideoRandom(videoInfo);
+
+                const newDownload: Downloads = {
+                    videoId: videoInfo.videoId,
+                    filePath: output,
+                    videoInfo
+                };
+
+                return newDownload;
+            });
+
+            const downloadedFiles = await Promise.all([...videoPromises]);
+
+            return downloadedFiles;
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
+    }
+
+    public async downloadVideoRandom(videoInfo: IVideoInfo): Promise<string> {
+        try {
+            const { videoId } = videoInfo;
+
+            const { outputAudio, outputVideo, outputFile } =
+                await outputAudioVideoFilePathRandom(videoInfo);
 
             if (await fileExists(outputFile)) return outputFile;
 
@@ -95,10 +159,6 @@ export class DownloadService {
                 resolve('END');
             });
         });
-    }
-
-    async create(data: Download) {
-        return new this.downloadModel(data).save();
     }
 
     async getVideoFileById(videoId: string) {
@@ -172,5 +232,60 @@ export class DownloadService {
         output: string
     ): Promise<void> {
         await writeFile(output, JSON.stringify(data, null, 4), 'utf-8');
+    }
+
+    async getByFilters(searches: string[]): Promise<string[]> {
+        try {
+            const urls = await this.getFilterUrls(searches);
+            const ids: string[] = [];
+
+            for (const url of urls) {
+                const videoIds = await this.getVideoIds(url);
+                if (!videoIds) continue;
+                ids.push(...videoIds);
+            }
+
+            return ids;
+        } catch (error) {
+            throw Exception.catch(error.message + error.stack);
+        }
+    }
+
+    private async getFilterUrls(searches: string[]): Promise<string[]> {
+        try {
+            const filtersUrls = searches.map(async (search) => {
+                const filter = await this.ytsr.getFilters(search);
+                const url = filter.get('Upload date').get('Last hour').url;
+                return url;
+            });
+            return Promise.all([...filtersUrls]);
+        } catch (error) {
+            throw Exception.catch(error.message + error.stack);
+        }
+    }
+
+    private async getVideoIds(url: string): Promise<string[]> {
+        try {
+            const { items } = await this.ytsr(url, { pages: 1 });
+            const videos = items as ytsrCore.Video[];
+
+            if (!items.length) return;
+
+            const a = videos
+                .filter((video) => {
+                    if (!video.duration) {
+                        return false;
+                    }
+                    const durationRegex = /^(?:PT(?:(?:0?[0-9]|[01][0-4]):[0-5][0-9]|15:00)S?)?$/;
+                    return durationRegex.test(video.duration);
+                })
+                .map((video) => {
+                    console.log(video.duration);
+                    return video.id;
+                });
+            return a;
+        } catch (error) {
+            throw Exception.catch(error.message + error.stack);
+        }
     }
 }
