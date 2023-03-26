@@ -6,9 +6,13 @@ import { unlink, writeFile } from 'fs/promises';
 import * as imgdlCore from 'image-downloader';
 import { Model } from 'mongoose';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
-import { IVideoInfo } from 'src/interfaces/downloads.interface';
+import { Downloads, IVideoInfo } from 'src/interfaces/downloads.interface';
 import { Exception } from 'src/utils/error/exception-handler';
-import { outputPaths } from 'src/utils/ytdl-paths';
+import { fileExists } from 'src/utils/file-exists';
+import {
+    outputAudioVideoFilePath,
+    outputTextImagePath
+} from 'src/utils/ytdl-paths';
 import { pipeline } from 'stream/promises';
 import * as ytdlCore from 'ytdl-core';
 import * as ytsrCore from 'ytsr';
@@ -33,25 +37,14 @@ export class DownloadService {
         return this.downloadModel.findByIdAndUpdate(id, data);
     }
 
-    async donwloadManyVideos(ids: string[]) {
-        const downloadPromises = ids.map(async (id) => {
-            const { videoDetails } = await this.ytdl.getInfo(id);
-            // const filePath = await this.downloadVideo();
-            // return { videoId: id, filePath, videoDetails };
-        });
-
-        const results = await Promise.all(downloadPromises);
-
-        return results;
-    }
-
     public async downloadVideo(videoInfo: IVideoInfo): Promise<string> {
         try {
             const { videoId } = videoInfo;
 
-            const { outputAudio, outputVideo, outputFile } = await outputPaths(
-                videoInfo
-            );
+            const { outputAudio, outputVideo, outputFile } =
+                await outputAudioVideoFilePath(videoInfo);
+
+            if (await fileExists(outputFile)) return outputFile;
 
             const audioWriteable = createWriteStream(outputAudio);
             const audioReadable = this.ytdl(videoId, {
@@ -77,17 +70,6 @@ export class DownloadService {
         } catch (error) {
             throw Exception.catch(error.message);
         }
-    }
-
-    async downloadImage(imgUrl: string, dest: string) {
-        const url = imgUrl.replace(/=s\d+/, '=s1080');
-        const { filename } = await this.imgdl.image({ url, dest });
-
-        return filename;
-    }
-
-    async saveInfoTxt(data: IChannelInfo, output: string) {
-        await writeFile(output, JSON.stringify(data, null, 4), 'utf-8');
     }
 
     private async mergeAudioVideo(
@@ -124,5 +106,71 @@ export class DownloadService {
             { 'downloads.videoId': videoId },
             { 'downloads.$': 1, _id: 0 }
         );
+    }
+
+    public async downloadVideos(
+        videoInfos: IVideoInfo[]
+    ): Promise<Downloads[]> {
+        try {
+            const videoPromises = videoInfos.map(async (videoInfo) => {
+                const output = await this.downloadVideo(videoInfo);
+
+                const newDownload: Downloads = {
+                    videoId: videoInfo.videoId,
+                    filePath: output,
+                    videoInfo
+                };
+
+                return newDownload;
+            });
+
+            const downloadedFiles = await Promise.all([...videoPromises]);
+
+            return downloadedFiles;
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
+    }
+
+    async changeChannelInfo(exist: Download, channelInfo: IChannelInfo) {
+        if (JSON.stringify(exist.channelInfo) !== JSON.stringify(channelInfo)) {
+            const { outputImage, outputText } = await outputTextImagePath(
+                channelInfo
+            );
+
+            await this.downloadTextAndImage(
+                channelInfo.thumbnails.high.url,
+                outputImage,
+                channelInfo,
+                outputText
+            );
+
+            await this.updateById(exist._id, { channelInfo });
+            return exist;
+        }
+        return exist;
+    }
+
+    public async downloadTextAndImage(
+        imgUrl: string,
+        outputImg: string,
+        channelInfo: IChannelInfo,
+        outputText: string
+    ): Promise<void> {
+        await this.downloadImage(imgUrl, outputImg);
+        await this.downloadText(channelInfo, outputText);
+    }
+
+    private async downloadImage(imgUrl: string, dest: string) {
+        const url = imgUrl.replace(/=s\d+/, '=s1080');
+        const { filename } = await this.imgdl.image({ url, dest });
+        return filename;
+    }
+
+    private async downloadText(
+        data: IChannelInfo,
+        output: string
+    ): Promise<void> {
+        await writeFile(output, JSON.stringify(data, null, 4), 'utf-8');
     }
 }

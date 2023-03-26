@@ -7,7 +7,6 @@ import {
     extractChannelIdFromChannelUrl,
     extractChannelIdFromUsername
 } from 'src/utils/get-channel-id';
-import { isValidVideoId } from 'src/utils/get-video-id';
 
 @Injectable()
 export class GoogleapiService {
@@ -47,7 +46,7 @@ export class GoogleapiService {
         }
     }
 
-    async getChannelIdFromUrl(url: string): Promise<string> {
+    async getChannelIdFromChannelUrl(url: string): Promise<string> {
         try {
             let channelId: string | null = null;
 
@@ -103,12 +102,6 @@ export class GoogleapiService {
 
     async getVideoInfo(videoId: string): Promise<IVideoInfo> {
         try {
-            if (!isValidVideoId(videoId))
-                throw new Exception({
-                    status: 'BAD_REQUEST',
-                    message: 'INVALID_ID_VIDEO'
-                });
-
             const { data } = await this.youtube.videos.list({
                 part: 'snippet',
                 id: videoId
