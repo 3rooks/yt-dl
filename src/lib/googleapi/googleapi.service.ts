@@ -35,12 +35,7 @@ export class GoogleapiService {
                 }
             } while (nextPageToken);
 
-            const videoIds = videos.map(
-                (video) => video.snippet.resourceId.videoId
-            );
-
-            return videoIds;
-            // `https://www.youtube.com/watch?v=${videoId}`
+            return videos.map((video) => video.snippet.resourceId.videoId);
         } catch (error) {
             throw Exception.catch(error.message);
         }
@@ -136,7 +131,7 @@ export class GoogleapiService {
             const durationRegex =
                 /^PT(?:([0-9]?|1[0-4])M)?(?:([0-5]?[0-9])S)?$/;
             const match = duration.match(durationRegex);
-            
+
             if (!match) return;
 
             if (data.items[0].snippet.liveBroadcastContent !== 'none') return;

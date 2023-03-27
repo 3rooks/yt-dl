@@ -31,24 +31,38 @@ export class DownloadService {
         @Inject('YTSR') private readonly ytsr: typeof ytsrCore
     ) {}
 
-    async create(data: Download) {
-        return new this.downloadModel(data).save();
+    async create(data: Download): Promise<DownloadDocument> {
+        return await new this.downloadModel(data).save();
     }
 
-    async getById(channelId: string): Promise<Download> {
+    async getById(channelId: string): Promise<DownloadDocument> {
         return await this.downloadModel.findOne({ id: channelId }).exec();
     }
 
-    async updateById(id: string, data: object) {
-        return this.downloadModel.findByIdAndUpdate(id, data);
+    async updateById(id: string, data: object): Promise<DownloadDocument> {
+        return await this.downloadModel.findByIdAndUpdate(id, data);
     }
 
-    public async downloadVideo(videoInfo: IVideoInfo): Promise<string> {
+    async updatedDownloadsById(
+        id: string,
+        downloads: Downloads[]
+    ): Promise<DownloadDocument> {
+        return await this.downloadModel.findByIdAndUpdate(
+            id,
+            { downloads },
+            { new: true }
+        );
+    }
+
+    public async downloadVideo(
+        videoInfo: IVideoInfo,
+        outputFolder: string
+    ): Promise<string> {
         try {
             const { videoId } = videoInfo;
 
             const { outputAudio, outputVideo, outputFile } =
-                await outputAudioVideoFilePath(videoInfo);
+                await outputAudioVideoFilePath(videoInfo, outputFolder);
 
             if (await fileExists(outputFile)) return outputFile;
 
@@ -177,11 +191,15 @@ export class DownloadService {
     }
 
     public async downloadVideos(
-        videoInfos: IVideoInfo[]
+        videoInfos: IVideoInfo[],
+        outputFolder: string
     ): Promise<Downloads[]> {
         try {
             const videoPromises = videoInfos.map(async (videoInfo) => {
-                const output = await this.downloadVideo(videoInfo);
+                const output = await this.downloadVideo(
+                    videoInfo,
+                    outputFolder
+                );
 
                 const newDownload: Downloads = {
                     videoId: videoInfo.videoId,
@@ -192,15 +210,16 @@ export class DownloadService {
                 return newDownload;
             });
 
-            const downloadedFiles = await Promise.all([...videoPromises]);
-
-            return downloadedFiles;
+            return await Promise.all([...videoPromises]);
         } catch (error) {
             throw Exception.catch(error.message);
         }
     }
 
-    async changeChannelInfo(exist: Download, channelInfo: IChannelInfo) {
+    async changeChannelInfo(
+        exist: DownloadDocument,
+        channelInfo: IChannelInfo
+    ): Promise<DownloadDocument> {
         if (JSON.stringify(exist.channelInfo) !== JSON.stringify(channelInfo)) {
             const { outputImage, outputText } = await outputTextImagePath(
                 channelInfo,

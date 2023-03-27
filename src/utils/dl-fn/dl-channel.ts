@@ -2,20 +2,20 @@ import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import { DownloadService } from 'src/modules/download/download.service';
-import { Download } from 'src/modules/download/schema/download.schema';
-import { RANDOM_PATH } from '../paths.resource';
+import { DownloadDocument } from 'src/modules/download/schema/download.schema';
 import { outputTextImagePath } from '../ytdl-paths';
 
 export const createChannel = async (
     channelId: string,
-    downloadService: DownloadService,
-    googleService: GoogleapiService
-): Promise<Download> => {
+    outputFolder: string,
+    googleService: GoogleapiService,
+    downloadService: DownloadService
+): Promise<DownloadDocument> => {
     const channelInfo = await googleService.getChannelInfo(channelId);
 
     const { outputImage, outputText } = await outputTextImagePath(
         channelInfo,
-        RANDOM_PATH
+        outputFolder
     );
 
     await downloadService.downloadTextAndImage(
@@ -32,12 +32,12 @@ export const createChannel = async (
     });
 };
 
-export const changeChannelInfo = async (
-    exist: Download,
+export const updateChannelInfo = async (
+    exist: DownloadDocument,
     channelInfo: IChannelInfo,
-    downloadService: DownloadService,
-    outputFolder: string
-) => {
+    outputFolder: string,
+    downloadService: DownloadService
+): Promise<DownloadDocument> => {
     if (JSON.stringify(channelInfo) !== JSON.stringify(exist.channelInfo)) {
         const { outputImage, outputText } = await outputTextImagePath(
             channelInfo,
@@ -58,40 +58,23 @@ export const changeChannelInfo = async (
     return exist;
 };
 
-export const updateChannelInfo = async (
-    exist: Download,
-    channelId: string,
-    downloadService: DownloadService,
-    googleService: GoogleapiService
-) => {
-    const channelInfo = await googleService.getChannelInfo(channelId);
-    return await downloadService.changeChannelInfo(exist, channelInfo);
-};
-
-export const getDownloadedVideos = async (exist: Download) => {
-    return exist.downloads.map((download) => download.videoId);
-};
+export const getDownloadedVideos = async (
+    exist: DownloadDocument
+): Promise<string[]> => exist.downloads.map((video) => video.videoId);
 
 export const getVideosToDownload = async (
-    videoIds: string[],
-    downloadedVideos: string[],
+    exist: DownloadDocument,
     googleService: GoogleapiService
-) => {
+): Promise<IVideoInfo[]> => {
+    const downloadedIds = exist.downloads.map((video) => video.videoId);
+    const allIdsChannel = await googleService.getAllVideosFromChannel(exist.id);
+
     const videosToDownload: IVideoInfo[] = [];
 
-    for (const id of videoIds) {
-        if (downloadedVideos.includes(id)) continue;
-        const videoInfo = await googleService.getVideoInfo(id);
-        videosToDownload.push(videoInfo);
+    for (const id of allIdsChannel) {
+        if (downloadedIds.includes(id)) continue;
+        videosToDownload.push(await googleService.getVideoInfo(id));
     }
 
     return videosToDownload;
-};
-
-export const downloadVideos = async (
-    videoInfos: IVideoInfo[],
-    downloadService: DownloadService
-) => {
-    const downloads = await downloadService.downloadVideos(videoInfos);
-    return downloads;
 };

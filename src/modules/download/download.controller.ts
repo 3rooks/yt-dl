@@ -5,9 +5,9 @@ import {
     Inject,
     Param,
     Post,
-    Res
+    Res,
+    StreamableFile
 } from '@nestjs/common';
-import { StreamableFile } from '@nestjs/common/file-stream';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { ApiTags } from '@nestjs/swagger';
 import { CronJob } from 'cron';
@@ -15,17 +15,14 @@ import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
-import { changeAuthor } from 'src/utils/dl-fn/change-author';
 import {
     createChannel,
-    downloadVideos,
-    getDownloadedVideos,
     getVideosToDownload,
     updateChannelInfo
 } from 'src/utils/dl-fn/dl-channel';
-import { existVideo } from 'src/utils/dl-fn/exist-video';
 import { Exception } from 'src/utils/error/exception-handler';
 import { validateAndExtractVideoId } from 'src/utils/get-video-id';
+import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
@@ -41,28 +38,60 @@ export class DownloadController {
     ) {}
 
     @Post('video')
-    async download(@Body() { videoUrl }: DownloadVideoDto) {
+    async download(
+        @Body() { videoUrl }: DownloadVideoDto,
+        @Res() res: Response
+    ): Promise<void> {
         try {
             const videoId = validateAndExtractVideoId(videoUrl);
+
             const videoInfo = await this.googleService.getVideoInfo(videoId);
-            const channelInfo = await this.googleService.getChannelInfo(
-                videoInfo.channelId
-            );
+
             let exist = await this.downloadService.getById(videoInfo.channelId);
 
-            exist = await changeAuthor(
-                exist,
-                channelInfo,
-                this.downloadService
+            if (!exist) {
+                exist = await createChannel(
+                    videoInfo.channelId,
+                    OUTPUT_PATH,
+                    this.googleService,
+                    this.downloadService
+                );
+            } else {
+                exist = await updateChannelInfo(
+                    exist,
+                    await this.googleService.getChannelInfo(
+                        videoInfo.channelId
+                    ),
+                    OUTPUT_PATH,
+                    this.downloadService
+                );
+            }
+
+            const existVideo = exist.downloads.find(
+                (video) => video.videoId === videoId
             );
 
-            const res = await existVideo(
-                exist,
-                videoInfo,
-                this.downloadService
-            );
+            if (!existVideo) {
+                const filePath = await this.downloadService.downloadVideo(
+                    videoInfo,
+                    OUTPUT_PATH
+                );
 
-            return res;
+                exist.downloads.push({
+                    videoId,
+                    filePath,
+                    videoInfo
+                });
+
+                await this.downloadService.updatedDownloadsById(
+                    exist._id,
+                    exist.downloads
+                );
+
+                return res.redirect(`video/${videoId}`);
+            }
+
+            return res.redirect(`video/${videoId}`);
         } catch (error) {
             throw Exception.catch(error.message);
         }
@@ -85,98 +114,36 @@ export class DownloadController {
             if (!exist) {
                 exist = await createChannel(
                     channelId,
-                    this.downloadService,
-                    this.googleService
+                    OUTPUT_PATH,
+                    this.googleService,
+                    this.downloadService
                 );
             } else {
                 exist = await updateChannelInfo(
                     exist,
-                    channelId,
-                    this.downloadService,
-                    this.googleService
+                    await this.googleService.getChannelInfo(channelId),
+                    OUTPUT_PATH,
+                    this.downloadService
                 );
             }
 
-            const downloadedVideos = await getDownloadedVideos(exist);
-            const videoIds = await this.googleService.getAllVideosFromChannel(
-                channelId
-            );
-
             const videosToDownload = await getVideosToDownload(
-                videoIds,
-                downloadedVideos,
+                exist,
                 this.googleService
             );
 
-            const downloads = await downloadVideos(
+            const downloads = await this.downloadService.downloadVideos(
                 videosToDownload,
-                this.downloadService
+                OUTPUT_PATH
             );
 
             exist.downloads.push(...downloads);
-            await this.downloadService.updateById(exist._id, {
-                downloads: exist.downloads
-            });
+            const updated = await this.downloadService.updatedDownloadsById(
+                exist._id,
+                exist.downloads
+            );
 
-            return exist.downloads;
-
-            // if (!exist) {
-            //     const channelInfo = await this.googleService.getChannelInfo(
-            //         channelId
-            //     );
-
-            //     const { outputImage, outputText } = await outputTextImagePath(
-            //         channelInfo
-            //     );
-            //     await this.downloadService.downloadTextAndImage(
-            //         channelInfo.thumbnails.high.url,
-            //         outputImage,
-            //         channelInfo,
-            //         outputText
-            //     );
-
-            //     exist = await this.downloadService.create({
-            //         id: channelId,
-            //         channelInfo: await this.googleService.getChannelInfo(
-            //             channelId
-            //         ),
-            //         downloads: []
-            //     });
-            // } else {
-            //     const channelInfo = await this.googleService.getChannelInfo(
-            //         channelId
-            //     );
-            //     exist = await this.downloadService.changeChannelInfo(
-            //         exist,
-            //         channelInfo
-            //     );
-            // }
-
-            // const downloadedVideos = exist.downloads.map(
-            //     (download) => download.videoId
-            // );
-            // const videoIds = await this.googleService.getAllVideosFromChannel(
-            //     channelId
-            // );
-
-            // const infosVideos: IVideoInfo[] = [];
-
-            // for (const id of videoIds) {
-            //     if (downloadedVideos.includes(id)) continue;
-            //     const videoInfo = await this.googleService.getVideoInfo(id);
-            //     infosVideos.push(videoInfo);
-            // }
-
-            // const downloadsInfos = await this.downloadService.downloadVideos(
-            //     infosVideos
-            // );
-
-            // exist.downloads.push(...downloadsInfos);
-            // await this.downloadService.updateById(exist._id, {
-            //     downloads: exist.downloads
-            // });
-
-            // return exist.downloads;
+            return updated.downloads;
         } catch (error) {
             throw Exception.catch(error.message);
         }
