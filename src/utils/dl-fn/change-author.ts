@@ -2,6 +2,7 @@ import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { DownloadService } from 'src/modules/download/download.service';
 import { Download } from 'src/modules/download/schema/download.schema';
 import { Exception } from '../error/exception-handler';
+import { OUTPUT_PATH } from '../paths.resource';
 import { outputTextImagePath } from '../ytdl-paths';
 
 export const changeAuthor = async (
@@ -11,7 +12,8 @@ export const changeAuthor = async (
 ) => {
     try {
         const { outputText, outputImage } = await outputTextImagePath(
-            channelInfo
+            channelInfo,
+            OUTPUT_PATH
         );
         const imgUrl = channelInfo.thumbnails.high.url;
         if (!exist) {

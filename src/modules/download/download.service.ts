@@ -9,6 +9,7 @@ import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { Downloads, IVideoInfo } from 'src/interfaces/downloads.interface';
 import { Exception } from 'src/utils/error/exception-handler';
 import { fileExists } from 'src/utils/file-exists';
+import { OUTPUT_PATH, RANDOM_PATH } from 'src/utils/paths.resource';
 import {
     outputAudioVideoFilePath,
     outputAudioVideoFilePathRandom,
@@ -106,9 +107,14 @@ export class DownloadService {
             const { videoId } = videoInfo;
 
             const { outputAudio, outputVideo, outputFile } =
-                await outputAudioVideoFilePathRandom(videoInfo);
+                await outputAudioVideoFilePathRandom(videoInfo, RANDOM_PATH);
 
-            if (await fileExists(outputFile)) return outputFile;
+            if (await fileExists(outputFile)) {
+                console.log(
+                    `Exist => ${videoInfo.channelTitle}-${videoInfo.title}`
+                );
+                return outputFile;
+            }
 
             const audioWriteable = createWriteStream(outputAudio);
             const audioReadable = this.ytdl(videoId, {
@@ -129,7 +135,9 @@ export class DownloadService {
 
             await this.mergeAudioVideo(outputAudio, outputVideo, outputFile);
 
-            console.log(`Finished => ${videoInfo.title}`);
+            console.log(
+                `Finished => ${videoInfo.channelTitle}-${videoInfo.title}`
+            );
             return outputFile;
         } catch (error) {
             throw Exception.catch(error.message);
@@ -195,7 +203,8 @@ export class DownloadService {
     async changeChannelInfo(exist: Download, channelInfo: IChannelInfo) {
         if (JSON.stringify(exist.channelInfo) !== JSON.stringify(channelInfo)) {
             const { outputImage, outputText } = await outputTextImagePath(
-                channelInfo
+                channelInfo,
+                OUTPUT_PATH
             );
 
             await this.downloadTextAndImage(
@@ -271,19 +280,7 @@ export class DownloadService {
 
             if (!items.length) return;
 
-            const a = videos
-                .filter((video) => {
-                    if (!video.duration) {
-                        return false;
-                    }
-                    const durationRegex = /^(?:PT(?:(?:0?[0-9]|[01][0-4]):[0-5][0-9]|15:00)S?)?$/;
-                    return durationRegex.test(video.duration);
-                })
-                .map((video) => {
-                    console.log(video.duration);
-                    return video.id;
-                });
-            return a;
+            return videos.map((video) => video.id);
         } catch (error) {
             throw Exception.catch(error.message + error.stack);
         }

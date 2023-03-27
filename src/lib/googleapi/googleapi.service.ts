@@ -128,10 +128,17 @@ export class GoogleapiService {
     async getVideoInfoRandom(videoId: string): Promise<IVideoInfo> {
         try {
             const { data } = await this.youtube.videos.list({
-                part: 'snippet',
+                part: 'snippet,contentDetails',
                 id: videoId
             });
+
+            const duration = data.items[0].contentDetails.duration;
+            const durationRegex =
+                /^PT(?:([0-9]?|1[0-4])M)?(?:([0-5]?[0-9])S)?$/;
+            const match = duration.match(durationRegex);
             
+            if (!match) return;
+
             if (data.items[0].snippet.liveBroadcastContent !== 'none') return;
 
             const videoInfo: IVideoInfo = {

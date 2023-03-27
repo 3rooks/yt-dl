@@ -16,10 +16,16 @@ import { createReadStream } from 'fs';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import { changeAuthor } from 'src/utils/dl-fn/change-author';
+import {
+    createChannel,
+    downloadVideos,
+    getDownloadedVideos,
+    getVideosToDownload,
+    updateChannelInfo
+} from 'src/utils/dl-fn/dl-channel';
 import { existVideo } from 'src/utils/dl-fn/exist-video';
 import { Exception } from 'src/utils/error/exception-handler';
 import { validateAndExtractVideoId } from 'src/utils/get-video-id';
-import { outputTextImagePath } from 'src/utils/ytdl-paths';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
@@ -77,62 +83,100 @@ export class DownloadController {
             let exist = await this.downloadService.getById(channelId);
 
             if (!exist) {
-                const channelInfo = await this.googleService.getChannelInfo(
-                    channelId
+                exist = await createChannel(
+                    channelId,
+                    this.downloadService,
+                    this.googleService
                 );
-
-                const { outputImage, outputText } = await outputTextImagePath(
-                    channelInfo
-                );
-                await this.downloadService.downloadTextAndImage(
-                    channelInfo.thumbnails.high.url,
-                    outputImage,
-                    channelInfo,
-                    outputText
-                );
-
-                exist = await this.downloadService.create({
-                    id: channelId,
-                    channelInfo: await this.googleService.getChannelInfo(
-                        channelId
-                    ),
-                    downloads: []
-                });
             } else {
-                const channelInfo = await this.googleService.getChannelInfo(
-                    channelId
-                );
-                exist = await this.downloadService.changeChannelInfo(
+                exist = await updateChannelInfo(
                     exist,
-                    channelInfo
+                    channelId,
+                    this.downloadService,
+                    this.googleService
                 );
             }
 
-            const downloadedVideos = exist.downloads.map(
-                (download) => download.videoId
-            );
+            const downloadedVideos = await getDownloadedVideos(exist);
             const videoIds = await this.googleService.getAllVideosFromChannel(
                 channelId
             );
 
-            const infosVideos: IVideoInfo[] = [];
-
-            for (const id of videoIds) {
-                if (downloadedVideos.includes(id)) continue;
-                const videoInfo = await this.googleService.getVideoInfo(id);
-                infosVideos.push(videoInfo);
-            }
-
-            const downloadsInfos = await this.downloadService.downloadVideos(
-                infosVideos
+            const videosToDownload = await getVideosToDownload(
+                videoIds,
+                downloadedVideos,
+                this.googleService
             );
 
-            exist.downloads.push(...downloadsInfos);
+            const downloads = await downloadVideos(
+                videosToDownload,
+                this.downloadService
+            );
+
+            exist.downloads.push(...downloads);
             await this.downloadService.updateById(exist._id, {
                 downloads: exist.downloads
             });
 
             return exist.downloads;
+
+            // if (!exist) {
+            //     const channelInfo = await this.googleService.getChannelInfo(
+            //         channelId
+            //     );
+
+            //     const { outputImage, outputText } = await outputTextImagePath(
+            //         channelInfo
+            //     );
+            //     await this.downloadService.downloadTextAndImage(
+            //         channelInfo.thumbnails.high.url,
+            //         outputImage,
+            //         channelInfo,
+            //         outputText
+            //     );
+
+            //     exist = await this.downloadService.create({
+            //         id: channelId,
+            //         channelInfo: await this.googleService.getChannelInfo(
+            //             channelId
+            //         ),
+            //         downloads: []
+            //     });
+            // } else {
+            //     const channelInfo = await this.googleService.getChannelInfo(
+            //         channelId
+            //     );
+            //     exist = await this.downloadService.changeChannelInfo(
+            //         exist,
+            //         channelInfo
+            //     );
+            // }
+
+            // const downloadedVideos = exist.downloads.map(
+            //     (download) => download.videoId
+            // );
+            // const videoIds = await this.googleService.getAllVideosFromChannel(
+            //     channelId
+            // );
+
+            // const infosVideos: IVideoInfo[] = [];
+
+            // for (const id of videoIds) {
+            //     if (downloadedVideos.includes(id)) continue;
+            //     const videoInfo = await this.googleService.getVideoInfo(id);
+            //     infosVideos.push(videoInfo);
+            // }
+
+            // const downloadsInfos = await this.downloadService.downloadVideos(
+            //     infosVideos
+            // );
+
+            // exist.downloads.push(...downloadsInfos);
+            // await this.downloadService.updateById(exist._id, {
+            //     downloads: exist.downloads
+            // });
+
+            // return exist.downloads;
         } catch (error) {
             throw Exception.catch(error.message);
         }
@@ -170,8 +214,32 @@ export class DownloadController {
         }
     }
 
-    @Get('filters')
-    async asd(@Body() { filter }: FiltersDto) {
+    private cronJob: CronJob;
+
+    @Post('filters-start')
+    startJob(@Body() { filter }: FiltersDto) {
+        // */3 * * * * 3 min
+        // */5 * * * * 5 min
+        const pattern = '*/3 * * * *';
+        this.cronJob = new CronJob(pattern, async () => {
+            await this.filters(filter);
+        });
+        this.schedulerRegistry.addCronJob('my-job', this.cronJob);
+        this.cronJob.start();
+        return 'Job iniciado';
+    }
+
+    @Post('filters-stop')
+    stopJob() {
+        if (this.cronJob) {
+            this.cronJob.stop();
+            this.schedulerRegistry.deleteCronJob('my-job');
+            this.cronJob = null;
+        }
+        return 'Job detenido';
+    }
+
+    private async filters(filter: string[]) {
         try {
             const videoIds = await this.downloadService.getByFilters(filter);
 
@@ -185,35 +253,13 @@ export class DownloadController {
                 infosVideos.push(videoInfo);
             }
 
-            // const outputfiles =
-            //     this.downloadService.downloadVideosRandom(infosVideos);
+            const outputfiles = await this.downloadService.downloadVideosRandom(
+                infosVideos
+            );
 
-            // return outputfiles;
+            return outputfiles;
         } catch (error) {
             throw Exception.catch(error.message + error.stack);
         }
-    }
-
-    private cronJob: CronJob;
-
-    @Post('start')
-    startJob() {
-        const pattern = '*/5 * * * * *'; // Ejecutar cada 5 segundos
-        this.cronJob = new CronJob(pattern, () => {
-            console.log('cada 5 segundos');
-        });
-        this.schedulerRegistry.addCronJob('my-job', this.cronJob);
-        this.cronJob.start();
-        return 'Job iniciado';
-    }
-
-    @Post('stop')
-    stopJob() {
-        if (this.cronJob) {
-            this.cronJob.stop();
-            this.schedulerRegistry.deleteCronJob('my-job');
-            this.cronJob = null;
-        }
-        return 'Job detenido';
     }
 }
