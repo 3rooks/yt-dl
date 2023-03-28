@@ -15,10 +15,10 @@ interface FilePathsTemp {
 }
 
 export const outputAudioVideoFilePath = async (
-    videoDetails: IVideoInfo,
+    videoInfo: IVideoInfo,
     outputFolder: string
 ): Promise<FilePathsTemp> => {
-    const { channelId, channelTitle, videoId, title } = videoDetails;
+    const { channelId, channelTitle, videoId, title } = videoInfo;
 
     const FOLDER_NAME = `${channelTitle}_${channelId}`
         .replace(/[/\\?%*:|"<>]/g, '')
@@ -73,35 +73,3 @@ interface TxtAndImageOutput {
     outputImage: string;
     outputText: string;
 }
-
-export const outputAudioVideoFilePathRandom = async (
-    videoDetails: IVideoInfo,
-    outputFolder: string
-): Promise<FilePathsTemp> => {
-    const { channelId, channelTitle, videoId, title } = videoDetails;
-
-    const FOLDER_NAME = `${channelTitle}_${channelId}`
-        .replace(/[/\\?%*:|"<>]/g, '')
-        .trim();
-
-    const TEMP_FILE = `${FOLDER_NAME}/${TEMP}`.trim();
-    const TEMP_FOLDER = join(outputFolder, TEMP_FILE).trim();
-    const FOLDER_PATH = join(outputFolder, FOLDER_NAME).trim();
-
-    if (!existsSync(TEMP_FOLDER)) await mkdir(TEMP_FOLDER, { recursive: true });
-
-    const AUDIO_TEMPLATE_FILE = `audio=${uuid()}.${FORMAT.MP3}`.trim();
-    const VIDEO_TEMPLATE_FILE = `video=${uuid()}.${FORMAT.MP4}`.trim();
-    const FILE_TEMPLATE = `${title}_${videoId}.${FORMAT.MP4}`
-        .replace(/[<>:"/\\|?*\x00-\x1F]+/g, '') // removes disallowed character
-        .normalize('NFD') // unicode characters into separate characters
-        .replace(/[\u0300-\u036f]/g, '') // removes diacritics
-        .replace(/[^\w\dа-яА-Я.\s]/g, '') // removes unwanted characters, except spaces
-        .trim();
-
-    const outputAudio = join(TEMP_FOLDER, AUDIO_TEMPLATE_FILE).trim();
-    const outputVideo = join(TEMP_FOLDER, VIDEO_TEMPLATE_FILE).trim();
-    const outputFile = join(FOLDER_PATH, FILE_TEMPLATE).trim();
-
-    return { outputAudio, outputVideo, outputFile };
-};

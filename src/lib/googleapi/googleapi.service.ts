@@ -3,10 +3,7 @@ import { google } from 'googleapis';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { Exception } from 'src/utils/error/exception-handler';
-import {
-    extractChannelIdFromChannelUrl,
-    extractChannelIdFromUsername
-} from 'src/utils/get-channel-id';
+
 
 @Injectable()
 export class GoogleapiService {
@@ -36,32 +33,6 @@ export class GoogleapiService {
             } while (nextPageToken);
 
             return videos.map((video) => video.snippet.resourceId.videoId);
-        } catch (error) {
-            throw Exception.catch(error.message);
-        }
-    }
-
-    async getChannelIdFromChannelUrl(url: string): Promise<string> {
-        try {
-            let channelId: string | null = null;
-
-            channelId = extractChannelIdFromChannelUrl(url);
-
-            if (!channelId) {
-                channelId = await extractChannelIdFromUsername(
-                    url,
-                    this.youtube
-                );
-            }
-
-            if (!channelId) {
-                throw new Exception({
-                    status: 'NOT_FOUND',
-                    message: 'CHANNEL_ID_NOT_FOUND'
-                });
-            }
-
-            return channelId;
         } catch (error) {
             throw Exception.catch(error.message);
         }

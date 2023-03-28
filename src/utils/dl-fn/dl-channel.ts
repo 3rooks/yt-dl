@@ -1,8 +1,8 @@
-import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import { DownloadService } from 'src/modules/download/download.service';
 import { DownloadDocument } from 'src/modules/download/schema/download.schema';
+import { Exception } from '../error/exception-handler';
 import { outputTextImagePath } from '../ytdl-paths';
 
 export const createChannel = async (
@@ -11,34 +11,9 @@ export const createChannel = async (
     googleService: GoogleapiService,
     downloadService: DownloadService
 ): Promise<DownloadDocument> => {
-    const channelInfo = await googleService.getChannelInfo(channelId);
+    try {
+        const channelInfo = await googleService.getChannelInfo(channelId);
 
-    const { outputImage, outputText } = await outputTextImagePath(
-        channelInfo,
-        outputFolder
-    );
-
-    await downloadService.downloadTextAndImage(
-        channelInfo.thumbnails.high.url,
-        outputImage,
-        channelInfo,
-        outputText
-    );
-
-    return await downloadService.create({
-        id: channelId,
-        channelInfo,
-        downloads: []
-    });
-};
-
-export const updateChannelInfo = async (
-    exist: DownloadDocument,
-    channelInfo: IChannelInfo,
-    outputFolder: string,
-    downloadService: DownloadService
-): Promise<DownloadDocument> => {
-    if (JSON.stringify(channelInfo) !== JSON.stringify(exist.channelInfo)) {
         const { outputImage, outputText } = await outputTextImagePath(
             channelInfo,
             outputFolder
@@ -51,11 +26,48 @@ export const updateChannelInfo = async (
             outputText
         );
 
-        exist = await downloadService.updateById(exist._id, {
-            channelInfo
+        return await downloadService.create({
+            id: channelId,
+            channelInfo,
+            downloads: []
         });
+    } catch (error) {
+        throw Exception.catch(error.message);
     }
-    return exist;
+};
+
+export const updateChannelInfo = async (
+    exist: DownloadDocument,
+    channelId: string,
+    outputFolder: string,
+    downloadService: DownloadService,
+    googleService: GoogleapiService
+): Promise<DownloadDocument> => {
+    try {
+        const channelInfo = await googleService.getChannelInfo(channelId);
+
+        if (channelInfo !== exist.channelInfo) {
+            const { outputImage, outputText } = await outputTextImagePath(
+                channelInfo,
+                outputFolder
+            );
+
+            await downloadService.downloadTextAndImage(
+                channelInfo.thumbnails.high.url,
+                outputImage,
+                channelInfo,
+                outputText
+            );
+
+            exist = await downloadService.updateById(exist._id, {
+                channelInfo
+            });
+        }
+
+        return exist;
+    } catch (error) {
+        throw Exception.catch(error.message);
+    }
 };
 
 export const getDownloadedVideos = async (

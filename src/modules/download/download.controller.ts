@@ -14,6 +14,7 @@ import { CronJob } from 'cron';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
+import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import {
     createChannel,
@@ -21,8 +22,8 @@ import {
     updateChannelInfo
 } from 'src/utils/dl-fn/dl-channel';
 import { Exception } from 'src/utils/error/exception-handler';
-import { validateAndExtractVideoId } from 'src/utils/get-video-id';
-import { OUTPUT_PATH } from 'src/utils/paths.resource';
+import { isValidYoutubeUrl } from 'src/utils/get-video-id';
+import { OUTPUT_PATH, RANDOM_PATH } from 'src/utils/paths.resource';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
@@ -38,20 +39,24 @@ export class DownloadController {
     ) {}
 
     @Post('video')
-    async download(
+    async downloadVideo(
         @Body() { videoUrl }: DownloadVideoDto,
         @Res() res: Response
     ): Promise<void> {
         try {
-            const videoId = validateAndExtractVideoId(videoUrl);
+            if (!isValidYoutubeUrl(videoUrl))
+                throw new Exception({
+                    message: 'INVALID_YOUTUBE_URL',
+                    status: 'BAD_REQUEST'
+                });
 
-            const videoInfo = await this.googleService.getVideoInfo(videoId);
+            const { channelId, videoId } = await getChannelIdVideoId(videoUrl);
 
-            let exist = await this.downloadService.getById(videoInfo.channelId);
+            let exist = await this.downloadService.getById(channelId);
 
             if (!exist) {
                 exist = await createChannel(
-                    videoInfo.channelId,
+                    channelId,
                     OUTPUT_PATH,
                     this.googleService,
                     this.downloadService
@@ -59,11 +64,10 @@ export class DownloadController {
             } else {
                 exist = await updateChannelInfo(
                     exist,
-                    await this.googleService.getChannelInfo(
-                        videoInfo.channelId
-                    ),
+                    channelId,
                     OUTPUT_PATH,
-                    this.downloadService
+                    this.downloadService,
+                    this.googleService
                 );
             }
 
@@ -72,6 +76,10 @@ export class DownloadController {
             );
 
             if (!existVideo) {
+                const videoInfo = await this.googleService.getVideoInfo(
+                    videoId
+                );
+
                 const filePath = await this.downloadService.downloadVideo(
                     videoInfo,
                     OUTPUT_PATH
@@ -100,14 +108,13 @@ export class DownloadController {
     @Post('channel')
     async downloadChannel(@Body() { channelUrl }: DownloadChannelDto) {
         try {
-            const channelId =
-                await this.googleService.getChannelIdFromChannelUrl(channelUrl);
-
-            if (!channelId)
+            if (!isValidYoutubeUrl(channelUrl))
                 throw new Exception({
-                    message: 'CHANNEL_NOT_FOUND',
-                    status: 'NOT_FOUND'
+                    message: 'INVALID_YOUTUBE_URL',
+                    status: 'BAD_REQUEST'
                 });
+
+            const { channelId } = await getChannelIdVideoId(channelUrl);
 
             let exist = await this.downloadService.getById(channelId);
 
@@ -121,9 +128,10 @@ export class DownloadController {
             } else {
                 exist = await updateChannelInfo(
                     exist,
-                    await this.googleService.getChannelInfo(channelId),
+                    channelId,
                     OUTPUT_PATH,
-                    this.downloadService
+                    this.downloadService,
+                    this.googleService
                 );
             }
 
@@ -153,7 +161,7 @@ export class DownloadController {
     async getVideoFileById(
         @Param('id') videoId: string,
         @Res({ passthrough: true }) res: Response
-    ): Promise<StreamableFile> {
+    ) {
         try {
             const exist = await this.downloadService.getVideoFileById(videoId);
 
@@ -169,13 +177,15 @@ export class DownloadController {
             }
 
             const { downloads } = exist;
+            const filePath = downloads[0].filePath;
+            const fileName = downloads[0].videoInfo.title;
+            const encodeFileName = encodeURIComponent(fileName);
             res.set({
                 'Content-Type': 'video/mp4',
-                'Content-Disposition': `attachment; filename="${downloads[0].videoInfo.title}.mp4"`
+                'Content-Disposition': `attachment; filename="${encodeFileName}.mp4"`
             });
 
-            const stream = createReadStream(downloads[0].filePath);
-            return new StreamableFile(stream);
+            return new StreamableFile(createReadStream(filePath));
         } catch (error) {
             throw Exception.catch(error.message);
         }
@@ -208,7 +218,9 @@ export class DownloadController {
 
     private async filters(filter: string[]) {
         try {
-            const videoIds = await this.downloadService.getByFilters(filter);
+            const videoIds = await this.downloadService.getLastHourVideoIds(
+                filter
+            );
 
             const infosVideos: IVideoInfo[] = [];
 
@@ -220,8 +232,9 @@ export class DownloadController {
                 infosVideos.push(videoInfo);
             }
 
-            const outputfiles = await this.downloadService.downloadVideosRandom(
-                infosVideos
+            const outputfiles = await this.downloadService.downloadVideos(
+                infosVideos,
+                RANDOM_PATH
             );
 
             return outputfiles;
