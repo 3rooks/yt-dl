@@ -80,6 +80,12 @@ export class DownloadController {
                     videoId
                 );
 
+                if (!videoInfo)
+                    throw new Exception({
+                        message: 'LIVE_VIDEO_NOT_ALLOWED',
+                        status: 'BAD_REQUEST'
+                    });
+
                 const filePath = await this.downloadService.downloadVideo(
                     videoInfo,
                     OUTPUT_PATH
@@ -225,7 +231,7 @@ export class DownloadController {
             const infosVideos: IVideoInfo[] = [];
 
             for (const id of videoIds) {
-                const videoInfo = await this.googleService.getVideoInfoRandom(
+                const videoInfo = await this.googleService.getVideoInfoByTime(
                     id
                 );
                 if (!videoInfo) continue;

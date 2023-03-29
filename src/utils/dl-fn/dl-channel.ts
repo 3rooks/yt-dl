@@ -85,7 +85,9 @@ export const getVideosToDownload = async (
 
     for (const id of allIdsChannel) {
         if (downloadedIds.includes(id)) continue;
-        videosToDownload.push(await googleService.getVideoInfo(id));
+        const videoInfo = await googleService.getVideoInfo(id);
+        if (!videoInfo) continue;
+        videosToDownload.push(videoInfo);
     }
 
     return videosToDownload;

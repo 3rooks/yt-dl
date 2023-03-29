@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
+import { DURATION_REGEX } from 'src/constants/regex.s';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { Exception } from 'src/utils/error/exception-handler';
-
 
 @Injectable()
 export class GoogleapiService {
@@ -39,19 +39,12 @@ export class GoogleapiService {
     }
 
     async getChannelInfo(channelId: string): Promise<IChannelInfo> {
-        // const { data } = await this.youtube.videos.list({
-        //     part: 'snippet',
-        //     id: videoId
-        // });
-        // const a = data.items[0].snippet.channelId;
-
         const { data } = await this.youtube.channels.list({
             part: 'snippet,statistics',
             id: channelId
         });
 
         const channelInfo: IChannelInfo = {
-            kind: data.items[0].kind,
             channelId: data.items[0].id,
             name: data.items[0].snippet.title,
             user: data.items[0].snippet.customUrl || 'undefined',
@@ -69,15 +62,14 @@ export class GoogleapiService {
     async getVideoInfo(videoId: string): Promise<IVideoInfo> {
         try {
             const { data } = await this.youtube.videos.list({
-                part: 'snippet',
+                part: 'snippet,contentDetails',
                 id: videoId
             });
 
+            if (data.items[0].snippet.liveBroadcastContent !== 'none') return;
+
             const videoInfo: IVideoInfo = {
-                kind: data.items[0].kind,
                 videoId: data.items[0].id,
-                channelId: data.items[0].snippet.channelId,
-                channelTitle: data.items[0].snippet.channelTitle,
                 title: data.items[0].snippet.title,
                 description: data.items[0].snippet.description,
                 upload: data.items[0].snippet.publishedAt,
@@ -91,27 +83,20 @@ export class GoogleapiService {
         }
     }
 
-    async getVideoInfoRandom(videoId: string): Promise<IVideoInfo> {
+    async getVideoInfoByTime(videoId: string): Promise<IVideoInfo> {
         try {
             const { data } = await this.youtube.videos.list({
                 part: 'snippet,contentDetails',
                 id: videoId
             });
 
-            const duration = data.items[0].contentDetails.duration;
-            const durationRegex =
-                /^PT(?:([0-9]?|1[0-4])M)?(?:([0-5]?[0-9])S)?$/;
-            const match = duration.match(durationRegex);
-
-            if (!match) return;
-
             if (data.items[0].snippet.liveBroadcastContent !== 'none') return;
 
+            const duration = data.items[0].contentDetails.duration;
+            if (!duration.match(DURATION_REGEX)) return;
+
             const videoInfo: IVideoInfo = {
-                kind: data.items[0].kind,
                 videoId: data.items[0].id,
-                channelId: data.items[0].snippet.channelId,
-                channelTitle: data.items[0].snippet.channelTitle,
                 title: data.items[0].snippet.title,
                 description: data.items[0].snippet.description,
                 upload: data.items[0].snippet.publishedAt,

@@ -1,5 +1,4 @@
 export interface IChannelInfo {
-    kind: string;
     channelId: string;
     name: string;
     user: string;
