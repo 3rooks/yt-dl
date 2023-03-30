@@ -68,8 +68,13 @@ export class DownloadService {
 
         if (await fileExists(outputFile)) return outputFile;
 
+        const { bestAudio, bestVideo } =
+            await this.ytdlService.getBestQualityAudioVideo(videoId);
+
         await this.ytdlService.downloadAudioVideo(
             videoId,
+            bestAudio,
+            bestVideo,
             outputAudio,
             outputVideo
         );

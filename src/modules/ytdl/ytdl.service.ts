@@ -17,19 +17,31 @@ export class YtdlService {
         private readonly config: ConfigService
     ) {}
 
+    async getBestQualityAudioVideo(videoId: string) {
+        const requestOptions = {
+            headers: {
+                cookie: this.config.get<string>(CONFIG.YT_COOKIE)
+            }
+        };
+
+        const { formats } = await this.ytdl.getInfo(videoId, {
+            requestOptions
+        });
+
+        const bestAudio = getBestAudioFormat(formats);
+        const bestVideo = getBestVideoFormat(formats);
+
+        return { bestAudio, bestVideo };
+    }
+
     async downloadAudioVideo(
         videoId: string,
+        bestAudio: ytdlCore.videoFormat,
+        bestVideo: ytdlCore.videoFormat,
         outputAudio: string,
         outputVideo: string
     ): Promise<void> {
         try {
-            const { formats } = await this.ytdl.getInfo(videoId);
-
-            const bestAudio = getBestAudioFormat(formats);
-            const bestVideo = getBestVideoFormat(formats);
-
-            console.log('BESTSTST', bestAudio.itag, bestVideo.itag);
-
             const requestOptions = {
                 headers: {
                     cookie: this.config.get<string>(CONFIG.YT_COOKIE)
@@ -55,7 +67,7 @@ export class YtdlService {
                 pipeline([videoReadable, videoWriteable])
             ]);
         } catch (error) {
-            throw Exception.catch(error.message + error.stack);
+            throw Exception.catch(error.message);
         }
     }
 }

@@ -9,8 +9,8 @@ export const getBestAudioFormat = (formats: videoFormat[]) => {
             quality: 'highestaudio'
         });
 
-        const { audioBitrate, audioCodec, itag } = bestAudioFormat;
-        console.log(`highestaudio => ${audioBitrate}x${audioCodec} - ${itag}`);
+        const { audioQuality, itag } = bestAudioFormat;
+        console.log(`highestaudio => ${audioQuality} - ${itag}`);
     } catch (error) {
         try {
             bestAudioFormat = chooseFormat(formats, {
@@ -18,8 +18,8 @@ export const getBestAudioFormat = (formats: videoFormat[]) => {
                 quality: 'highest'
             });
 
-            const { audioBitrate, audioCodec, itag } = bestAudioFormat;
-            console.log(`highest => ${audioBitrate}x${audioCodec} - ${itag}`);
+            const { audioQuality, itag } = bestAudioFormat;
+            console.log(`highest => ${audioQuality} - ${itag}`);
         } catch (error) {
             try {
                 bestAudioFormat = chooseFormat(formats, {
@@ -27,20 +27,16 @@ export const getBestAudioFormat = (formats: videoFormat[]) => {
                     quality: 'lowest'
                 });
 
-                const { audioBitrate, audioCodec, itag } = bestAudioFormat;
-                console.log(
-                    `lowest => ${audioBitrate}x${audioCodec} - ${itag}`
-                );
+                const { audioQuality, itag } = bestAudioFormat;
+                console.log(`lowest => ${audioQuality} - ${itag}`);
             } catch (error) {
                 bestAudioFormat = chooseFormat(formats, {
                     filter: 'audioonly',
                     quality: 'lowestaudio'
                 });
 
-                const { audioBitrate, audioCodec, itag } = bestAudioFormat;
-                console.log(
-                    `lowestaudio => ${audioBitrate}x${audioCodec} - ${itag}`
-                );
+                const { audioQuality, itag } = bestAudioFormat;
+                console.log(`lowestaudio => ${audioQuality} - ${itag}`);
             }
         }
     }

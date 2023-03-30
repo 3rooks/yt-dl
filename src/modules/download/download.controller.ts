@@ -14,7 +14,7 @@ import { CronJob } from 'cron';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { NAME_JOB, TIME_JOB } from 'src/constants/watch-job';
-import { Downloads, IVideoInfo } from 'src/interfaces/downloads.interface';
+import { Downloads } from 'src/interfaces/downloads.interface';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import {
@@ -208,12 +208,17 @@ export class DownloadController {
     @Post('watch-start')
     async startWatch(@Body() { keys }: FiltersDto) {
         this.cronJob = new CronJob(TIME_JOB, async () => {
-            await watcherKeys(
-                keys,
-                this.watchFolder,
-                this.googleService,
-                this.downloadService
-            );
+            try {
+                await watcherKeys(
+                    keys,
+                    this.watchFolder,
+                    this.googleService,
+                    this.downloadService
+                );
+            } catch (error) {
+                // this.cronJob.start();
+                console.log('Restarting...'+ error.message);
+            }
         });
         this.schedulerRegistry.addCronJob(NAME_JOB, this.cronJob);
         this.cronJob.start();
