@@ -68,7 +68,7 @@ export class DownloadService {
 
         if (await fileExists(outputFile)) return outputFile;
 
-        await this.ytdlService.donwloadAudioVideo(
+        await this.ytdlService.downloadAudioVideo(
             videoId,
             outputAudio,
             outputVideo

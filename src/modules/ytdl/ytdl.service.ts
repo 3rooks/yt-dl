@@ -2,7 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createWriteStream } from 'fs';
 import { CONFIG } from 'src/constants/config';
-import { getBestAudioFormats, getBestVideoFormats } from 'src/utils/dl-fn/get-best-quality';
+import {
+    getBestAudioFormat,
+    getBestVideoFormat
+} from 'src/utils/dl-fn/get-best-quality';
 import { Exception } from 'src/utils/error/exception-handler';
 import { pipeline } from 'stream/promises';
 import * as ytdlCore from 'ytdl-core';
@@ -14,7 +17,7 @@ export class YtdlService {
         private readonly config: ConfigService
     ) {}
 
-    async donwloadAudioVideo(
+    async downloadAudioVideo(
         videoId: string,
         outputAudio: string,
         outputVideo: string
@@ -22,10 +25,10 @@ export class YtdlService {
         try {
             const { formats } = await this.ytdl.getInfo(videoId);
 
-            const bestAudio = getBestAudioFormats(formats);
-            const bestVideo = getBestVideoFormats(formats);
+            const bestAudio = getBestAudioFormat(formats);
+            const bestVideo = getBestVideoFormat(formats);
 
-            console.log('BEST', bestAudio.itag, bestVideo.itag);
+            console.log('BESTSTST', bestAudio.itag, bestVideo.itag);
 
             const requestOptions = {
                 headers: {
@@ -52,7 +55,7 @@ export class YtdlService {
                 pipeline([videoReadable, videoWriteable])
             ]);
         } catch (error) {
-            throw Exception.catch(error.message);
+            throw Exception.catch(error.message + error.stack);
         }
     }
 }

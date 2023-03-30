@@ -1,85 +1,93 @@
 import { chooseFormat, videoFormat } from 'ytdl-core';
 
-export const getBestAudioFormat = (formats: videoFormat[]): videoFormat => {
-    return formats.reduce((best: videoFormat, current: videoFormat) => {
-        if (
-            current.audioBitrate &&
-            current.audioCodec &&
-            current.audioBitrate > best.audioBitrate
-        ) {
-            return current;
-        }
-        return best;
-    }, formats[0]);
-};
-
-export const getBestVideoFormat = (formats: videoFormat[]): videoFormat => {
-    return formats.reduce((best: videoFormat, current: videoFormat) => {
-        if (current.hasVideo && current.qualityLabel && current.itag !== 43) {
-            const bestQuality = best.qualityLabel
-                ? parseInt(best.qualityLabel.split('p')[0])
-                : 0;
-            const currentQuality = parseInt(current.qualityLabel.split('p')[0]);
-            if (currentQuality > bestQuality) {
-                return current;
-            }
-        }
-        return best;
-    }, formats[0]);
-};
-
-export const getBestAudioFormats = (formats: videoFormat[]) => {
+export const getBestAudioFormat = (formats: videoFormat[]) => {
     let bestAudioFormat: videoFormat;
 
-    bestAudioFormat = chooseFormat(formats, {
-        filter: 'audioonly',
-        quality: 'highestaudio'
-    });
-    if (!bestAudioFormat) {
+    try {
         bestAudioFormat = chooseFormat(formats, {
             filter: 'audioonly',
-            quality: 'highest'
+            quality: 'highestaudio'
         });
+
+        const { audioBitrate, audioCodec, itag } = bestAudioFormat;
+        console.log(`highestaudio => ${audioBitrate}x${audioCodec} - ${itag}`);
+    } catch (error) {
+        try {
+            bestAudioFormat = chooseFormat(formats, {
+                filter: 'audioonly',
+                quality: 'highest'
+            });
+
+            const { audioBitrate, audioCodec, itag } = bestAudioFormat;
+            console.log(`highest => ${audioBitrate}x${audioCodec} - ${itag}`);
+        } catch (error) {
+            try {
+                bestAudioFormat = chooseFormat(formats, {
+                    filter: 'audioonly',
+                    quality: 'lowest'
+                });
+
+                const { audioBitrate, audioCodec, itag } = bestAudioFormat;
+                console.log(
+                    `lowest => ${audioBitrate}x${audioCodec} - ${itag}`
+                );
+            } catch (error) {
+                bestAudioFormat = chooseFormat(formats, {
+                    filter: 'audioonly',
+                    quality: 'lowestaudio'
+                });
+
+                const { audioBitrate, audioCodec, itag } = bestAudioFormat;
+                console.log(
+                    `lowestaudio => ${audioBitrate}x${audioCodec} - ${itag}`
+                );
+            }
+        }
     }
-    if (!bestAudioFormat) {
-        bestAudioFormat = chooseFormat(formats, {
-            filter: 'audioonly',
-            quality: 'lowestaudio'
-        });
-    }
-    if (!bestAudioFormat) {
-        bestAudioFormat = chooseFormat(formats, {
-            filter: 'audioonly',
-            quality: 'lowest'
-        });
-    }
+
     return bestAudioFormat;
 };
 
-export const getBestVideoFormats = (formats: videoFormat[]) => {
+export const getBestVideoFormat = (formats: videoFormat[]) => {
     let bestVideoFormat: videoFormat;
 
-    bestVideoFormat = chooseFormat(formats, {
-        filter: 'videoonly',
-        quality: 'highestvideo'
-    });
-    if (!bestVideoFormat) {
+    try {
         bestVideoFormat = chooseFormat(formats, {
             filter: 'videoonly',
-            quality: 'highest'
+            quality: 'highestvideo'
         });
+
+        const { width, height, itag } = bestVideoFormat;
+        console.log(`highestvideo => ${width}x${height} - ${itag}`);
+    } catch (error) {
+        try {
+            bestVideoFormat = chooseFormat(formats, {
+                filter: 'videoonly',
+                quality: 'highest'
+            });
+
+            const { width, height, itag } = bestVideoFormat;
+            console.log(`highest => ${width}x${height} - ${itag}`);
+        } catch (error) {
+            try {
+                bestVideoFormat = chooseFormat(formats, {
+                    filter: 'videoonly',
+                    quality: 'lowest'
+                });
+
+                const { width, height, itag } = bestVideoFormat;
+                console.log(`lowest => ${width}x${height} - ${itag}`);
+            } catch (error) {
+                bestVideoFormat = chooseFormat(formats, {
+                    filter: 'audioonly',
+                    quality: 'lowestvideo'
+                });
+
+                const { width, height, itag } = bestVideoFormat;
+                console.log(`lowestvideo => ${width}x${height} - ${itag}`);
+            }
+        }
     }
-    if (!bestVideoFormat) {
-        bestVideoFormat = chooseFormat(formats, {
-            filter: 'audioonly',
-            quality: 'lowestvideo'
-        });
-    }
-    if (!bestVideoFormat) {
-        bestVideoFormat = chooseFormat(formats, {
-            filter: 'videoonly',
-            quality: 'lowest'
-        });
-    }
+
     return bestVideoFormat;
 };
