@@ -7,6 +7,8 @@ export interface Downloads {
 export interface IVideoInfo {
     videoId: string;
     title: string;
+    channelId: string;
+    channelTitle: string;
     description: string;
     upload: string;
     embed: string;

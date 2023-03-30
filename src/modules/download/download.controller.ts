@@ -13,14 +13,16 @@ import { ApiTags } from '@nestjs/swagger';
 import { CronJob } from 'cron';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
-import { IVideoInfo } from 'src/interfaces/downloads.interface';
+import { NAME_JOB, TIME_JOB } from 'src/constants/watch-job';
+import { Downloads, IVideoInfo } from 'src/interfaces/downloads.interface';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import {
     createChannel,
     getVideosToDownload,
     updateChannelInfo
-} from 'src/utils/dl-fn/dl-channel';
+} from 'src/utils/dl-fn/channel-dl-fn';
+import { watcherKeys } from 'src/utils/dl-fn/watcher-dl-fn';
 import { Exception } from 'src/utils/error/exception-handler';
 import { isValidYoutubeUrl } from 'src/utils/get-video-id';
 import { OUTPUT_PATH, RANDOM_PATH } from 'src/utils/paths.resource';
@@ -32,6 +34,10 @@ import { FiltersDto } from './dto/filters.dto';
 @ApiTags('Download')
 @Controller('download')
 export class DownloadController {
+    private cronJob: CronJob;
+    private readonly mainFolder = OUTPUT_PATH;
+    private readonly watchFolder = RANDOM_PATH;
+
     constructor(
         private readonly downloadService: DownloadService,
         private readonly googleService: GoogleapiService,
@@ -57,7 +63,7 @@ export class DownloadController {
             if (!exist) {
                 exist = await createChannel(
                     channelId,
-                    OUTPUT_PATH,
+                    this.mainFolder,
                     this.googleService,
                     this.downloadService
                 );
@@ -65,9 +71,9 @@ export class DownloadController {
                 exist = await updateChannelInfo(
                     exist,
                     channelId,
-                    OUTPUT_PATH,
-                    this.downloadService,
-                    this.googleService
+                    this.mainFolder,
+                    this.googleService,
+                    this.downloadService
                 );
             }
 
@@ -88,7 +94,7 @@ export class DownloadController {
 
                 const filePath = await this.downloadService.downloadVideo(
                     videoInfo,
-                    OUTPUT_PATH
+                    this.mainFolder
                 );
 
                 exist.downloads.push({
@@ -112,7 +118,9 @@ export class DownloadController {
     }
 
     @Post('channel')
-    async downloadChannel(@Body() { channelUrl }: DownloadChannelDto) {
+    async downloadChannel(
+        @Body() { channelUrl }: DownloadChannelDto
+    ): Promise<Downloads[]> {
         try {
             if (!isValidYoutubeUrl(channelUrl))
                 throw new Exception({
@@ -127,7 +135,7 @@ export class DownloadController {
             if (!exist) {
                 exist = await createChannel(
                     channelId,
-                    OUTPUT_PATH,
+                    this.mainFolder,
                     this.googleService,
                     this.downloadService
                 );
@@ -135,9 +143,9 @@ export class DownloadController {
                 exist = await updateChannelInfo(
                     exist,
                     channelId,
-                    OUTPUT_PATH,
-                    this.downloadService,
-                    this.googleService
+                    this.mainFolder,
+                    this.googleService,
+                    this.downloadService
                 );
             }
 
@@ -148,7 +156,7 @@ export class DownloadController {
 
             const downloads = await this.downloadService.downloadVideos(
                 videosToDownload,
-                OUTPUT_PATH
+                this.mainFolder
             );
 
             exist.downloads.push(...downloads);
@@ -167,7 +175,7 @@ export class DownloadController {
     async getVideoFileById(
         @Param('id') videoId: string,
         @Res({ passthrough: true }) res: Response
-    ) {
+    ): Promise<StreamableFile> {
         try {
             const exist = await this.downloadService.getVideoFileById(videoId);
 
@@ -197,55 +205,28 @@ export class DownloadController {
         }
     }
 
-    private cronJob: CronJob;
-
-    @Post('filters-start')
-    startJob(@Body() { filter }: FiltersDto) {
-        // */3 * * * * 3 min
-        // */5 * * * * 5 min
-        const pattern = '*/3 * * * *';
-        this.cronJob = new CronJob(pattern, async () => {
-            await this.filters(filter);
+    @Post('watch-start')
+    async startWatch(@Body() { keys }: FiltersDto) {
+        this.cronJob = new CronJob(TIME_JOB, async () => {
+            await watcherKeys(
+                keys,
+                this.watchFolder,
+                this.googleService,
+                this.downloadService
+            );
         });
-        this.schedulerRegistry.addCronJob('my-job', this.cronJob);
+        this.schedulerRegistry.addCronJob(NAME_JOB, this.cronJob);
         this.cronJob.start();
-        return 'Job iniciado';
+        return 'Watcher initiated';
     }
 
-    @Post('filters-stop')
-    stopJob() {
+    @Post('watch-stop')
+    stopWatch(): string {
         if (this.cronJob) {
             this.cronJob.stop();
-            this.schedulerRegistry.deleteCronJob('my-job');
+            this.schedulerRegistry.deleteCronJob(NAME_JOB);
             this.cronJob = null;
         }
-        return 'Job detenido';
-    }
-
-    private async filters(filter: string[]) {
-        try {
-            const videoIds = await this.downloadService.getLastHourVideoIds(
-                filter
-            );
-
-            const infosVideos: IVideoInfo[] = [];
-
-            for (const id of videoIds) {
-                const videoInfo = await this.googleService.getVideoInfoByTime(
-                    id
-                );
-                if (!videoInfo) continue;
-                infosVideos.push(videoInfo);
-            }
-
-            const outputfiles = await this.downloadService.downloadVideos(
-                infosVideos,
-                RANDOM_PATH
-            );
-
-            return outputfiles;
-        } catch (error) {
-            throw Exception.catch(error.message + error.stack);
-        }
+        return 'Watcher finished';
     }
 }

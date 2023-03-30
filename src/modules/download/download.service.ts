@@ -6,7 +6,6 @@ import * as miniget from 'miniget';
 import { Model } from 'mongoose';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { Downloads, IVideoInfo } from 'src/interfaces/downloads.interface';
-import { Exception } from 'src/utils/error/exception-handler';
 import { fileExists } from 'src/utils/file-exists';
 import { outputAudioVideoFilePath } from 'src/utils/ytdl-paths';
 import { pipeline } from 'stream/promises';
@@ -62,75 +61,72 @@ export class DownloadService {
         videoInfo: IVideoInfo,
         outputFolder: string
     ): Promise<string> {
-        try {
-            const { videoId } = videoInfo;
+        const { videoId } = videoInfo;
 
-            const { outputAudio, outputVideo, outputFile } =
-                await outputAudioVideoFilePath(videoInfo, outputFolder);
+        const { outputAudio, outputVideo, outputFile } =
+            await outputAudioVideoFilePath(videoInfo, outputFolder);
 
-            if (await fileExists(outputFile)) return outputFile;
+        if (await fileExists(outputFile)) return outputFile;
 
-            await this.ytdlService.donwloadAudioVideo(
-                videoId,
-                outputAudio,
-                outputVideo
-            );
+        await this.ytdlService.donwloadAudioVideo(
+            videoId,
+            outputAudio,
+            outputVideo
+        );
 
-            await this.ffmpegService.mergeAudioVideo(
-                outputAudio,
-                outputVideo,
-                outputFile
-            );
+        await this.ffmpegService.mergeAudioVideo(
+            outputAudio,
+            outputVideo,
+            outputFile
+        );
 
-            console.log(`Finished => ${videoInfo.title}`);
-            return outputFile;
-        } catch (error) {
-            throw Exception.catch(error.message);
-        }
+        console.log(`Finished => ${videoInfo.title}`);
+        return outputFile;
     }
 
     public async downloadVideos(
         videoInfos: IVideoInfo[],
         outputFolder: string
     ): Promise<Downloads[]> {
-        try {
-            const videoPromises = videoInfos.map(async (videoInfo) => {
-                const output = await this.downloadVideo(
-                    videoInfo,
-                    outputFolder
-                );
+        const videoPromises = videoInfos.map(async (videoInfo) => {
+            const output = await this.downloadVideo(videoInfo, outputFolder);
 
-                const newDownload: Downloads = {
-                    videoId: videoInfo.videoId,
-                    filePath: output,
-                    videoInfo
-                };
+            const newDownload: Downloads = {
+                videoId: videoInfo.videoId,
+                filePath: output,
+                videoInfo
+            };
 
-                return newDownload;
-            });
+            return newDownload;
+        });
 
-            return await Promise.all([...videoPromises]);
-        } catch (error) {
-            throw Exception.catch(error.message);
+        return await Promise.all([...videoPromises]);
+    }
+
+    async funciona(searches: string[]) {
+        const videoIds: string[] = [];
+        for (const search of searches) {
+            const url = await this.ytsrService.getLastHourUrl(search);
+            const videos = await this.ytsrService.getVideosFiltered(url);
+            if (!videos.length) continue;
+            const idsids = videos.map((video) => video.id);
+            videoIds.push(...idsids);
         }
+        return videoIds;
     }
 
     public async getLastHourVideoIds(searches: string[]): Promise<string[]> {
-        try {
-            const urls = await this.ytsrService.getLastHourUrls(searches);
+        const urls = [];
 
-            const ids: string[] = [];
+        const ids: string[] = [];
 
-            for (const url of urls) {
-                const videoIds = await this.ytsrService.getVideoIdsFromUrl(url);
-                if (!videoIds) continue;
-                ids.push(...videoIds);
-            }
-
-            return ids;
-        } catch (error) {
-            throw Exception.catch(error.message);
+        for (const url of urls) {
+            const videoIds = await this.ytsrService.getVideosFiltered(url);
+            if (!videoIds) continue;
+            // ids.push(...videoIds);
         }
+
+        return ids;
     }
 
     public async downloadTextAndImage(

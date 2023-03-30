@@ -71,6 +71,8 @@ export class GoogleapiService {
             const videoInfo: IVideoInfo = {
                 videoId: data.items[0].id,
                 title: data.items[0].snippet.title,
+                channelId: data.items[0].snippet.channelId,
+                channelTitle: data.items[0].snippet.channelTitle,
                 description: data.items[0].snippet.description,
                 upload: data.items[0].snippet.publishedAt,
                 embed: `https://www.youtube.com/embed/${data.items[0].id}`,
@@ -93,11 +95,14 @@ export class GoogleapiService {
             if (data.items[0].snippet.liveBroadcastContent !== 'none') return;
 
             const duration = data.items[0].contentDetails.duration;
+            console.log('DURATION', duration, !duration.match(DURATION_REGEX));
             if (!duration.match(DURATION_REGEX)) return;
 
             const videoInfo: IVideoInfo = {
                 videoId: data.items[0].id,
                 title: data.items[0].snippet.title,
+                channelId: data.items[0].snippet.channelId,
+                channelTitle: data.items[0].snippet.channelTitle,
                 description: data.items[0].snippet.description,
                 upload: data.items[0].snippet.publishedAt,
                 embed: `https://www.youtube.com/embed/${data.items[0].id}`,

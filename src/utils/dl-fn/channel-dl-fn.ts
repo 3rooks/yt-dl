@@ -40,8 +40,8 @@ export const updateChannelInfo = async (
     exist: DownloadDocument,
     channelId: string,
     outputFolder: string,
-    downloadService: DownloadService,
-    googleService: GoogleapiService
+    googleService: GoogleapiService,
+    downloadService: DownloadService
 ): Promise<DownloadDocument> => {
     try {
         const channelInfo = await googleService.getChannelInfo(channelId);

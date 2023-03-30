@@ -5,5 +5,5 @@ export class FiltersDto {
     @ApiProperty()
     @IsNotEmpty()
     @IsArray()
-    public readonly filter: string[];
+    public readonly keys: string[];
 }
