@@ -2,18 +2,14 @@ import {
     Body,
     Controller,
     Get,
-    Inject,
     Param,
     Post,
     Res,
     StreamableFile
 } from '@nestjs/common';
-import { SchedulerRegistry } from '@nestjs/schedule';
 import { ApiTags } from '@nestjs/swagger';
-import { CronJob } from 'cron';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
-import { NAME_JOB, TIME_JOB } from 'src/constants/watch-job';
 import { Downloads } from 'src/interfaces/downloads.interface';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
@@ -22,26 +18,21 @@ import {
     getVideosToDownload,
     updateChannelInfo
 } from 'src/utils/dl-fn/channel-dl-fn';
-import { watcherKeys } from 'src/utils/dl-fn/watcher-dl-fn';
 import { Exception } from 'src/utils/error/exception-handler';
 import { isValidYoutubeUrl } from 'src/utils/get-video-id';
-import { OUTPUT_PATH, RANDOM_PATH } from 'src/utils/paths.resource';
+import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
-import { FiltersDto } from './dto/filters.dto';
 
 @ApiTags('Download')
 @Controller('download')
 export class DownloadController {
-    private cronJob: CronJob;
     private readonly mainFolder = OUTPUT_PATH;
-    private readonly watchFolder = RANDOM_PATH;
 
     constructor(
         private readonly downloadService: DownloadService,
-        private readonly googleService: GoogleapiService,
-        @Inject(SchedulerRegistry) private schedulerRegistry: SchedulerRegistry
+        private readonly googleService: GoogleapiService
     ) {}
 
     @Post('video')
@@ -203,35 +194,5 @@ export class DownloadController {
         } catch (error) {
             throw Exception.catch(error.message);
         }
-    }
-
-    @Post('watch-start')
-    async startWatch(@Body() { keys }: FiltersDto) {
-        this.cronJob = new CronJob(TIME_JOB, async () => {
-            try {
-                await watcherKeys(
-                    keys,
-                    this.watchFolder,
-                    this.googleService,
-                    this.downloadService
-                );
-            } catch (error) {
-                // this.cronJob.start();
-                console.log('Restarting...'+ error.message);
-            }
-        });
-        this.schedulerRegistry.addCronJob(NAME_JOB, this.cronJob);
-        this.cronJob.start();
-        return 'Watcher initiated';
-    }
-
-    @Post('watch-stop')
-    stopWatch(): string {
-        if (this.cronJob) {
-            this.cronJob.stop();
-            this.schedulerRegistry.deleteCronJob(NAME_JOB);
-            this.cronJob = null;
-        }
-        return 'Watcher finished';
     }
 }
