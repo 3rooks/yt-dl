@@ -8,35 +8,27 @@ export const getBestAudioFormat = (formats: videoFormat[]) => {
             filter: 'audioonly',
             quality: 'highestaudio'
         });
-
-        const { audioQuality, itag } = bestAudioFormat;
-        console.log(`highestaudio => ${audioQuality} - ${itag}`);
+        console.log(`highestaudio => ${bestAudioFormat.itag}`);
     } catch (error) {
         try {
             bestAudioFormat = chooseFormat(formats, {
                 filter: 'audioonly',
                 quality: 'highest'
             });
-
-            const { audioQuality, itag } = bestAudioFormat;
-            console.log(`highest => ${audioQuality} - ${itag}`);
+            console.log(`highest =>  ${bestAudioFormat.itag}`);
         } catch (error) {
             try {
                 bestAudioFormat = chooseFormat(formats, {
                     filter: 'audioonly',
                     quality: 'lowest'
                 });
-
-                const { audioQuality, itag } = bestAudioFormat;
-                console.log(`lowest => ${audioQuality} - ${itag}`);
+                console.log(`lowest => ${bestAudioFormat.itag}`);
             } catch (error) {
                 bestAudioFormat = chooseFormat(formats, {
                     filter: 'audioonly',
                     quality: 'lowestaudio'
                 });
-
-                const { audioQuality, itag } = bestAudioFormat;
-                console.log(`lowestaudio => ${audioQuality} - ${itag}`);
+                console.log(`lowestaudio => ${bestAudioFormat.itag}`);
             }
         }
     }
@@ -54,7 +46,7 @@ export const getBestVideoFormat = (formats: videoFormat[]) => {
         });
 
         const { width, height, itag } = bestVideoFormat;
-        console.log(`highestvideo => ${width}x${height} - ${itag}`);
+        console.log(`highestvideo => ${itag} (${width}x${height})`);
     } catch (error) {
         try {
             bestVideoFormat = chooseFormat(formats, {
@@ -63,7 +55,7 @@ export const getBestVideoFormat = (formats: videoFormat[]) => {
             });
 
             const { width, height, itag } = bestVideoFormat;
-            console.log(`highest => ${width}x${height} - ${itag}`);
+            console.log(`highest => ${itag} (${width}x${height})`);
         } catch (error) {
             try {
                 bestVideoFormat = chooseFormat(formats, {
@@ -72,7 +64,7 @@ export const getBestVideoFormat = (formats: videoFormat[]) => {
                 });
 
                 const { width, height, itag } = bestVideoFormat;
-                console.log(`lowest => ${width}x${height} - ${itag}`);
+                console.log(`lowest => ${itag} (${width}x${height})`);
             } catch (error) {
                 bestVideoFormat = chooseFormat(formats, {
                     filter: 'audioonly',
@@ -80,7 +72,7 @@ export const getBestVideoFormat = (formats: videoFormat[]) => {
                 });
 
                 const { width, height, itag } = bestVideoFormat;
-                console.log(`lowestvideo => ${width}x${height} - ${itag}`);
+                console.log(`lowestvideo => ${itag} (${width}x${height})`);
             }
         }
     }

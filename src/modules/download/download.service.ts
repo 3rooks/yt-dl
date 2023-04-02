@@ -11,7 +11,6 @@ import { outputAudioVideoFilePath } from 'src/utils/ytdl-paths';
 import { pipeline } from 'stream/promises';
 import { FfmpegService } from '../ffmpeg/ffmpeg.service';
 import { YtdlService } from '../ytdl/ytdl.service';
-import { YtsrService } from '../ytsr/ytsr.service';
 import { Download, DownloadDocument } from './schema/download.schema';
 
 @Injectable()
@@ -20,8 +19,7 @@ export class DownloadService {
         @InjectModel(Download.name)
         private readonly downloadModel: Model<DownloadDocument>,
         private readonly ffmpegService: FfmpegService,
-        private readonly ytdlService: YtdlService,
-        private readonly ytsrService: YtsrService
+        private readonly ytdlService: YtdlService
     ) {}
 
     public async create(data: Download): Promise<DownloadDocument> {
@@ -71,6 +69,12 @@ export class DownloadService {
         const { bestAudio, bestVideo } =
             await this.ytdlService.getBestQualityAudioVideo(videoId);
 
+        console.log(
+            'CONTENTLENTGy',
+            bestAudio.contentLength,
+            bestVideo.contentLength
+        );
+
         await this.ytdlService.downloadAudioVideo(
             videoId,
             bestAudio,
@@ -106,32 +110,6 @@ export class DownloadService {
         });
 
         return await Promise.all([...videoPromises]);
-    }
-
-    async funciona(searches: string[]) {
-        const videoIds: string[] = [];
-        for (const search of searches) {
-            const url = await this.ytsrService.getLastHourUrl(search);
-            const videos = await this.ytsrService.getVideosFiltered(url);
-            if (!videos.length) continue;
-            const idsids = videos.map((video) => video.id);
-            videoIds.push(...idsids);
-        }
-        return videoIds;
-    }
-
-    public async getLastHourVideoIds(searches: string[]): Promise<string[]> {
-        const urls = [];
-
-        const ids: string[] = [];
-
-        for (const url of urls) {
-            const videoIds = await this.ytsrService.getVideosFiltered(url);
-            if (!videoIds) continue;
-            // ids.push(...videoIds);
-        }
-
-        return ids;
     }
 
     public async downloadTextAndImage(

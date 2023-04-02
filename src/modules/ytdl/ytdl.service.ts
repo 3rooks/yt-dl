@@ -10,6 +10,8 @@ import { Exception } from 'src/utils/error/exception-handler';
 import { pipeline } from 'stream/promises';
 import * as ytdlCore from 'ytdl-core';
 
+const socket: any = '';
+
 @Injectable()
 export class YtdlService {
     constructor(
@@ -62,6 +64,33 @@ export class YtdlService {
                 requestOptions
             });
 
+            // Inicializar la variable para llevar el registro del progreso actual
+            let downloadedBytes = 0;
+            const totalSize =
+                Number(bestAudio.contentLength) +
+                Number(bestVideo.contentLength);
+
+            // Escuchar el evento 'progress' de la descarga de audio y enviar el progreso actual
+            audioReadable.on('data', (chunk: any) => {
+                downloadedBytes += chunk.length;
+                sendProgress(downloadedBytes);
+            });
+
+            // Escuchar el evento 'progress' de la descarga de video y enviar el progreso actual
+            videoReadable.on('data', (chunk: any) => {
+                downloadedBytes += chunk.length;
+                sendProgress(downloadedBytes);
+            });
+
+            // Enviar la información del progreso al cliente
+            const sendProgress = (downloadedBytes: number) => {
+                socket.emit('downloadProgress', {
+                    progress: downloadedBytes / totalSize,
+                    downloadedBytes,
+                    totalSize
+                });
+            };
+
             await Promise.all([
                 pipeline([audioReadable, audioWriteable]),
                 pipeline([videoReadable, videoWriteable])
@@ -71,3 +100,8 @@ export class YtdlService {
         }
     }
 }
+
+
+// const fs = require('fs');
+
+// const totalSize = fs.statSync(filePath).size;
