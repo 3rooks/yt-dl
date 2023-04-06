@@ -1,13 +1,22 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { ClusterService } from './config/cluster/cluster.service';
-import { CONFIG } from './constants/config';
+import { swaggerConfig } from './utils/swagger-config';
 
-async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
-    app.setGlobalPrefix(CONFIG.PREFIX);
+const bootstrap = async () => {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+    app.enableCors({
+        origin: '*',
+        methods: '*',
+        credentials: true
+    });
+
+    app.setBaseViewsDir(join(__dirname, '../views'));
+    app.setViewEngine('ejs');
     app.useGlobalPipes(
         new ValidationPipe({
             transform: true,
@@ -18,16 +27,12 @@ async function bootstrap() {
             }
         })
     );
-    const config = new DocumentBuilder()
-        .setTitle('YT-DL')
-        .setDescription('API-REST endpoints')
-        .setVersion('1.0')
-        .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('docs', app, document);
+
+    swaggerConfig(app);
 
     ClusterService.clusterize(async () => {
         await app.listen(AppModule.port);
     });
-}
+};
+
 bootstrap();

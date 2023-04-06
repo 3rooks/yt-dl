@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createWriteStream } from 'fs';
 import { CONFIG } from 'src/constants/config';
+import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import {
     getBestAudioFormat,
     getBestVideoFormat
@@ -10,13 +11,12 @@ import { Exception } from 'src/utils/error/exception-handler';
 import { pipeline } from 'stream/promises';
 import * as ytdlCore from 'ytdl-core';
 
-const socket: any = '';
-
 @Injectable()
 export class YtdlService {
     constructor(
         @Inject('YTDL') private readonly ytdl: typeof ytdlCore,
-        private readonly config: ConfigService
+        private readonly config: ConfigService,
+        private readonly downloadGateway: DownloadGateway
     ) {}
 
     async getBestQualityAudioVideo(videoId: string) {
@@ -41,7 +41,8 @@ export class YtdlService {
         bestAudio: ytdlCore.videoFormat,
         bestVideo: ytdlCore.videoFormat,
         outputAudio: string,
-        outputVideo: string
+        outputVideo: string,
+        clientId: string
     ): Promise<void> {
         try {
             const requestOptions = {
@@ -84,10 +85,16 @@ export class YtdlService {
 
             // Enviar la información del progreso al cliente
             const sendProgress = (downloadedBytes: number) => {
-                socket.emit('downloadProgress', {
-                    progress: downloadedBytes / totalSize,
-                    downloadedBytes,
-                    totalSize
+                const downloadedMb = downloadedBytes / (1024 * 1024);
+                const totalSizeMb = totalSize / (1024 * 1024);
+                const progressPercent = Math.floor(
+                    (downloadedBytes / totalSize) * 100
+                );
+
+                this.downloadGateway.downloadProgress(clientId, {
+                    progress: progressPercent,
+                    downloaded: downloadedMb,
+                    totalSize: totalSizeMb
                 });
             };
 
@@ -100,8 +107,3 @@ export class YtdlService {
         }
     }
 }
-
-
-// const fs = require('fs');
-
-// const totalSize = fs.statSync(filePath).size;

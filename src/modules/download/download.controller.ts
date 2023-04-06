@@ -37,9 +37,8 @@ export class DownloadController {
 
     @Post('video')
     async downloadVideo(
-        @Body() { videoUrl }: DownloadVideoDto,
-        @Res() res: Response
-    ): Promise<void> {
+        @Body() { clientId, videoUrl }: DownloadVideoDto,
+    ) {
         try {
             if (!isValidYoutubeUrl(videoUrl))
                 throw new Exception({
@@ -85,7 +84,8 @@ export class DownloadController {
 
                 const filePath = await this.downloadService.downloadVideo(
                     videoInfo,
-                    this.mainFolder
+                    this.mainFolder,
+                    clientId
                 );
 
                 exist.downloads.push({
@@ -99,10 +99,10 @@ export class DownloadController {
                     exist.downloads
                 );
 
-                return res.redirect(`video/${videoId}`);
+                return videoId;
             }
 
-            return res.redirect(`video/${videoId}`);
+            return videoId;
         } catch (error) {
             throw Exception.catch(error.message);
         }

@@ -7,4 +7,8 @@ export class DownloadVideoDto {
     @IsString()
     @IsUrl()
     public readonly videoUrl: string;
+
+    @IsNotEmpty()
+    @IsString()
+    public readonly clientId: string;
 }

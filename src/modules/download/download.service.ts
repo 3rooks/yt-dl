@@ -57,7 +57,8 @@ export class DownloadService {
 
     public async downloadVideo(
         videoInfo: IVideoInfo,
-        outputFolder: string
+        outputFolder: string,
+        clientId: string
     ): Promise<string> {
         const { videoId } = videoInfo;
 
@@ -80,13 +81,15 @@ export class DownloadService {
             bestAudio,
             bestVideo,
             outputAudio,
-            outputVideo
+            outputVideo,
+            clientId
         );
 
         await this.ffmpegService.mergeAudioVideo(
             outputAudio,
             outputVideo,
-            outputFile
+            outputFile,
+            clientId
         );
 
         console.log(`Finished => ${videoInfo.title}`);
@@ -98,11 +101,11 @@ export class DownloadService {
         outputFolder: string
     ): Promise<Downloads[]> {
         const videoPromises = videoInfos.map(async (videoInfo) => {
-            const output = await this.downloadVideo(videoInfo, outputFolder);
+            // const output = await this.downloadVideo(videoInfo, outputFolder);
 
             const newDownload: Downloads = {
                 videoId: videoInfo.videoId,
-                filePath: output,
+                filePath: '',
                 videoInfo
             };
 

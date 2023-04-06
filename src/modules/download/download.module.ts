@@ -1,25 +1,15 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { DatabaseModule } from 'src/config/database/database.module';
 import { GoogleapiModule } from 'src/lib/googleapi/googleapi.module';
 import { FfmpegModule } from '../ffmpeg/ffmpeg.module';
 import { YtdlModule } from '../ytdl/ytdl.module';
 import { DownloadController } from './download.controller';
 import { DownloadService } from './download.service';
-import { Download, DownloadSchema } from './schema/download.schema';
 
 @Module({
-    imports: [
-        MongooseModule.forFeature([
-            {
-                name: Download.name,
-                schema: DownloadSchema
-            }
-        ]),
-        GoogleapiModule,
-        FfmpegModule,
-        YtdlModule
-    ],
+    imports: [GoogleapiModule, DatabaseModule, FfmpegModule, YtdlModule],
     controllers: [DownloadController],
-    providers: [DownloadService]
+    providers: [DownloadService],
+    exports: [DownloadService]
 })
 export class DownloadModule {}

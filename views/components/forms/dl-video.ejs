@@ -1,0 +1,59 @@
+<form id="dlvideo-form" class="w-6/12 flex flex-col gap-2 m-auto">
+    <h2 class="text-center text-white">URL:</h2>
+    <input
+        type="text"
+        class="border border-solid border-white rounded-lg shadow-white"
+        name="videoUrl"
+    />
+    <button
+        type="submit"
+        class="border border-solid border-white rounded-lg px-2 text-white"
+    >
+        Send
+    </button>
+</form>
+<script>
+    const form = document.getElementById('dlvideo-form');
+    form.addEventListener('submit', async (ev) => {
+        try {
+            ev.preventDefault();
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            const dlVideo = async () => {
+                const response = await fetch('/download/video', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        clientId: socket.id,
+                        videoUrl: data.videoUrl
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const videoId = response.text();
+
+                console.log("RESPONES", response, videoId)
+
+                // const getVideoById = async (videoId) => {
+                //     const response = await fetch(`/download/video/${videoId}`, {
+                //         method: 'GET',
+                //         headers: {
+                //             'Content-Type': 'application/json'
+                //         }
+                //     });
+
+                //     console.log(response);
+                // };
+
+                // await getVideoById(videoId);
+            };
+
+            await dlVideo();
+        } catch (error) {
+            console.log(error);
+        }
+    });
+</script>
