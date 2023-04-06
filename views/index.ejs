@@ -1,132 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-    <%- include('components/head') %>
-    <body class="bg-black">
-        <%- include('components/header') %>
-
-        <div class="w-full border border-solid border-white p-8 rounded-xl">
-            <!-- <form id="form" class="w-6/12 flex flex-col gap-2 m-auto">
-                <h2 class="text-center text-white">URL:</h2>
-                <input
-                    type="text"
-                    class="
-                        border border-solid border-white
-                        rounded-lg
-                        shadow-white
-                    "
-                    name="videoUrl"
-                />
-                <button
-                    type="submit"
-                    class="
-                        border border-solid border-white
-                        rounded-lg
-                        px-2
-                        text-white
-                    "
-                >
-                    Send
-                </button>
-            </form> -->
-
-            <%- include('components/forms/dl-video') %>
-
-            <div class="text-white">
-                <p>Downloaded: <span id="downloaded">0 MB</span></p>
-                <p>Total size: <span id="total-size">0 MB</span></p>
-                <progress id="download-progress" value="0" max="100"></progress>
-                <span id="progress-label">0%</span>
+    <%- include('components/commons/head') %>
+    <body class="bg-gray-100">
+        <header class="bg-white shadow-md">
+            <%- include('components/commons/header') %>
+        </header>
+        <main class="max-w-screen-xl mx-auto px-4 py-8 md:px-8">
+            <div class="max-w-lg mx-auto">
+                <!-- Formulario de descarga -->
+                <%- include('components/forms/dl-video') %>
+                <!-- Barra de progreso de descarga -->
+                <%- include('components/progress/download') %>
+                <!-- Barra de progreso de fusión -->
+                <%- include('components/progress/merge') %>
             </div>
-
-            <div id="progress-container" class="text-white">
-                <h3>MERGINNNNNN..</h3>
-                <p id="frames" class="text-white">Frames:</p>
-                <p id="fps" class="text-white">FPS:</p>
-                <p id="kbps" class="text-white">KBPS:</p>
-                <p id="size" class="text-white">Size:</p>
-                <p id="time" class="text-white">Time:</p>
-            </div>
-        </div>
-        <!-- <script src="/socket.io/socket.io.js"></script> -->
-        <script>
-            // const socket = io.connect();
-
-            socket.on('connect', () => {
-                console.log('Socket connected' + socket.id);
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Socket disconnected' + socket.id);
-            });
-
-            socket.on('downloadProgress', (data) => {
-                const progress = document.getElementById('download-progress');
-                const label = document.getElementById('progress-label');
-
-                progress.value = data.progress;
-                label.textContent = `${data.progress}%`;
-
-                // Actualizar los valores de descarga y tamaño total en MB
-                const downloaded = document.getElementById('downloaded');
-                const totalSize = document.getElementById('total-size');
-
-                downloaded.textContent = `${data.downloaded.toFixed(2)} MB`;
-                totalSize.textContent = `${data.totalSize.toFixed(2)} MB`;
-            });
-
-            socket.on('mergeProgress', (progress) => {
-                const frames = document.getElementById('frames');
-                frames.textContent = `Frames: ${progress.frames}`;
-
-                const fps = document.getElementById('fps');
-                fps.textContent = `FPS: ${progress.fps}`;
-
-                const kbps = document.getElementById('kbps');
-                kbps.textContent = `KBPS: ${progress.kbps}`;
-
-                const size = document.getElementById('size');
-                size.textContent = `Size: ${progress.size} MB`;
-
-                const time = document.getElementById('time');
-                time.textContent = `Time: ${progress.time}`;
-            });
-
-            socket.on('mergeFinished', (status) => {
-                console.log('STATSU', status);
-                const progressContainer =
-                    document.getElementById('progress-container');
-                progressContainer.classList.add('hidden');
-            });
-
-            // const form = document.getElementById('form');
-            // form.addEventListener('submit', async (ev) => {
-            //     try {
-            //         ev.preventDefault();
-
-            //         const formData = new FormData(form);
-            //         const data = Object.fromEntries(formData.entries());
-
-            //         const dlVideo = async () => {
-            //             const response = await fetch('/download/video', {
-            //                 method: 'POST',
-            //                 body: JSON.stringify({
-            //                     clientId: socket.id,
-            //                     videoUrl: data.videoUrl
-            //                 }),
-            //                 headers: {
-            //                     'Content-Type': 'application/json'
-            //                 }
-            //             });
-
-            //             const redirectUrl = response.url;
-            //             window.location.href = redirectUrl;
-            //         };
-
-            //         await dlVideo();
-            //     } catch (error) {
-            //         console.log(error);
-            //     }
-            // });
-        </script>
+        </main>
     </body>
 </html>

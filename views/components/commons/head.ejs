@@ -7,8 +7,16 @@
         href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css"
         rel="stylesheet"
     />
-    <!-- <script src="/socket.io/socket.io.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io.connect();
-    </script> -->
+
+        socket.on('connect', () => {
+            console.log(`Connected: ${socket.id}`);
+        });
+
+        socket.on('disconnect', () => {
+            console.log(`Disconnected: ${socket.id}`);
+        });
+    </script>
 </head>

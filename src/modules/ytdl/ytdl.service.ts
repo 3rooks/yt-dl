@@ -102,6 +102,8 @@ export class YtdlService {
                 pipeline([audioReadable, audioWriteable]),
                 pipeline([videoReadable, videoWriteable])
             ]);
+
+            this.downloadGateway.downloadFinished(clientId, 'END');
         } catch (error) {
             throw Exception.catch(error.message);
         }

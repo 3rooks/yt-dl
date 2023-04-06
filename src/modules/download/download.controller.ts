@@ -36,9 +36,7 @@ export class DownloadController {
     ) {}
 
     @Post('video')
-    async downloadVideo(
-        @Body() { clientId, videoUrl }: DownloadVideoDto,
-    ) {
+    async downloadVideo(@Body() { clientId, videoUrl }: DownloadVideoDto) {
         try {
             if (!isValidYoutubeUrl(videoUrl))
                 throw new Exception({

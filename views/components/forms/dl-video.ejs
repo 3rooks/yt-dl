@@ -1,19 +1,43 @@
-<form id="dlvideo-form" class="w-6/12 flex flex-col gap-2 m-auto">
-    <h2 class="text-center text-white">URL:</h2>
-    <input
-        type="text"
-        class="border border-solid border-white rounded-lg shadow-white"
-        name="videoUrl"
-    />
-    <button
-        type="submit"
-        class="border border-solid border-white rounded-lg px-2 text-white"
+<form id="dlvideo-form" class="w-full md:w-8/12 lg:w-6/12 mx-auto">
+    <h2 class="text-center text-lg font-bold mb-4">URL:</h2>
+    <div
+        class="
+            flex
+            items-center
+            border border-solid border-gray-500
+            rounded-lg
+            overflow-hidden
+        "
     >
-        Send
-    </button>
+        <input
+            type="text"
+            class="w-full border-none focus:outline-none px-4 py-3"
+            placeholder="Insert video URL"
+            name="videoUrl"
+            required
+        />
+        <button
+            type="submit"
+            class="
+                bg-blue-500
+                hover:bg-blue-600
+                text-white
+                px-4
+                py-3
+                disabled
+                cursor-not-allowed
+            "
+        >
+            Send
+        </button>
+    </div>
 </form>
+<div id="download-link"></div>
+
 <script>
     const form = document.getElementById('dlvideo-form');
+    const sendButton = form.querySelector('button[type="submit"]');
+
     form.addEventListener('submit', async (ev) => {
         try {
             ev.preventDefault();
@@ -21,7 +45,11 @@
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
 
-            const dlVideo = async () => {
+            // deshabilitar el botón de envío
+            sendButton.disabled = true;
+            sendButton.classList.add('bg-gray-500', 'cursor-not-allowed');
+
+            const getVideoId = async () => {
                 const response = await fetch('/download/video', {
                     method: 'POST',
                     body: JSON.stringify({
@@ -33,25 +61,42 @@
                     }
                 });
 
-                const videoId = response.text();
-
-                console.log("RESPONES", response, videoId)
-
-                // const getVideoById = async (videoId) => {
-                //     const response = await fetch(`/download/video/${videoId}`, {
-                //         method: 'GET',
-                //         headers: {
-                //             'Content-Type': 'application/json'
-                //         }
-                //     });
-
-                //     console.log(response);
-                // };
-
-                // await getVideoById(videoId);
+                const videoId = await response.text();
+                return videoId;
             };
 
-            await dlVideo();
+            const videoId = await getVideoId();
+
+            if (!videoId) {
+                console.log('NO VIDEO ID');
+            } else {
+                const link = document.createElement('a');
+                link.href = `/download/video/${videoId}`;
+                link.target = '_blank';
+                link.textContent = 'Download';
+                link.classList.add(
+                    'bg-blue-500',
+                    'hover:bg-blue-700',
+                    'text-white',
+                    'font-bold',
+                    'py-2',
+                    'px-4',
+                    'rounded'
+                );
+                document.getElementById('download-link').appendChild(link);
+
+                form.reset(); // resetear el formulario
+                sendButton.classList.remove(
+                    'bg-gray-500',
+                    'cursor-not-allowed'
+                );
+                sendButton.disabled = false; // habilitar el botón de envío
+
+                // eliminar el enlace de descarga después de 10 segundos
+                setTimeout(() => {
+                    document.getElementById('download-link').removeChild(link);
+                }, 10000);
+            }
         } catch (error) {
             console.log(error);
         }
