@@ -31,6 +31,7 @@ export class DownloadGateway
     mergeProgress(clientId: string, payload: object) {
         const client = this.clients[clientId];
         if (client) {
+            console.log('PROGRESS', payload);
             client.emit('mergeProgress', payload);
         }
     }

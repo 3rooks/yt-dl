@@ -1,52 +1,125 @@
 <div id="merge-container" class="hidden w-full mx-auto mt-4 lg:w-2/3">
-    <h2 class="text-lg font-medium text-gray-700 mb-2">
-        Merging audio + video
-    </h2>
-    <table class="table-auto">
-        <thead>
-            <tr>
-                <th class="px-4 py-2 text-left">Frames</th>
-                <th class="px-4 py-2 text-left">FPS</th>
-                <th class="px-4 py-2 text-left">Kbps</th>
-                <th class="px-4 py-2 text-left">Size</th>
-                <th class="px-4 py-2 text-left">Time</th>
-            </tr>
-        </thead>
-        <tbody id="progress-table"></tbody>
-    </table>
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <div class="grid grid-cols-2 gap-4 text-gray-700">
+            <div
+                class="
+                    flex
+                    items-center
+                    justify-center
+                    bg-gray-200
+                    py-2
+                    px-4
+                    rounded-tl-lg rounded-bl-lg
+                    font-medium
+                "
+            >
+                <span>Frames</span>
+            </div>
+            <div
+                id="progress-frames"
+                class="border py-2 px-4 rounded-tr-lg rounded-br-lg font-medium"
+            ></div>
+            <div
+                class="
+                    flex
+                    items-center
+                    justify-center
+                    bg-gray-200
+                    py-2
+                    px-4
+                    rounded-tl-lg rounded-bl-lg
+                    font-medium
+                "
+            >
+                <span>FPS</span>
+            </div>
+            <div
+                id="progress-fps"
+                class="border py-2 px-4 rounded-tr-lg rounded-br-lg font-medium"
+            ></div>
+            <div
+                class="
+                    flex
+                    items-center
+                    justify-center
+                    bg-gray-200
+                    py-2
+                    px-4
+                    rounded-tl-lg rounded-bl-lg
+                    font-medium
+                "
+            >
+                <span>Kbps</span>
+            </div>
+            <div
+                id="progress-kbps"
+                class="border py-2 px-4 rounded-tr-lg rounded-br-lg font-medium"
+            ></div>
+            <div
+                class="
+                    flex
+                    items-center
+                    justify-center
+                    bg-gray-200
+                    py-2
+                    px-4
+                    rounded-tl-lg rounded-bl-lg
+                    font-medium
+                "
+            >
+                <span>Size</span>
+            </div>
+            <div
+                id="progress-size"
+                class="border py-2 px-4 rounded-tr-lg rounded-br-lg font-medium"
+            ></div>
+            <div
+                class="
+                    flex
+                    items-center
+                    justify-center
+                    bg-gray-200
+                    py-2
+                    px-4
+                    rounded-tl-lg rounded-bl-lg
+                    font-medium
+                "
+            >
+                <span>Time</span>
+            </div>
+            <div
+                id="progress-time"
+                class="border py-2 px-4 rounded-tr-lg rounded-br-lg font-medium"
+            ></div>
+        </div>
+    </div>
 </div>
 
 <script>
     const mergeContainer = document.getElementById('merge-container');
-    const progressTable = document.getElementById('progress-table');
+    const framesElem = document.getElementById('progress-frames');
+    const fpsElem = document.getElementById('progress-fps');
+    const kbpsElem = document.getElementById('progress-kbps');
+    const sizeElem = document.getElementById('progress-size');
+    const timeElem = document.getElementById('progress-time');
 
     socket.on('mergeProgress', (data) => {
-        const progressData = {
-            frames: data.frames,
-            fps: data.currentFps,
-            kbps: data.currentKbps,
-            size: data.targetSize,
-            time: data.timemark
-        };
+        framesElem.innerText = data.frames;
+        fpsElem.innerText = data.fps;
+        kbpsElem.innerText = data.kbps;
+        sizeElem.innerText = data.size;
+        timeElem.innerText = data.time;
 
-        const tableRow = document.createElement('tr');
-        Object.values(progressData).forEach((value) => {
-            const tableData = document.createElement('td');
-            tableData.textContent = value;
-            tableRow.appendChild(tableData);
-        });
-
-        progressTable.innerHTML = '';
-        progressTable.appendChild(tableRow);
-
-        mergeContainer.style.display = 'block';
-    });
-
-    socket.on('mergeProgress', () => {
-        mergeContainer.style.display = 'none';
+        mergeContainer.classList.remove('hidden');
     });
 
     socket.on('mergeFinished', () => {
-        mergeContainer.style.display = 'none';
+        mergeContainer.classList.add('hidden');
+
+        framesElem.innerText = '';
+        fpsElem.innerText = '';
+        kbpsElem.innerText = '';
+        sizeElem.innerText = '';
+        timeElem.innerText = '';
     });
 </script>

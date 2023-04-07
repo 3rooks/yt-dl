@@ -23,9 +23,10 @@ export class FfmpegService {
                 .addInput(video) // video
                 .format(FORMAT.MP4) // format
                 .videoCodec('libx264') // códec video H.264
+                .on('progress', (progress) => handleProgress(progress))
                 .saveToFile(output); // output file
 
-            ffdl.on('progress', (progress) => {
+            const handleProgress = (progress) => {
                 const progressData = {
                     frames: progress.frames,
                     fps: progress.currentFps,
@@ -34,9 +35,8 @@ export class FfmpegService {
                     time: progress.timemark
                 };
 
-                // console.log(progressData);
                 this.downloadGateway.mergeProgress(clientId, progressData);
-            });
+            };
 
             await new Promise((resolve, reject) => {
                 ffdl.on('error', (error) => {
