@@ -1,6 +1,6 @@
 import { chooseFormat, videoFormat } from 'ytdl-core';
 
-export const getBestAudioFormat = (formats: videoFormat[]) => {
+export const getBestAudioFormat = async (formats: videoFormat[]) => {
     let bestAudioFormat: videoFormat;
 
     try {
@@ -36,7 +36,7 @@ export const getBestAudioFormat = (formats: videoFormat[]) => {
     return bestAudioFormat;
 };
 
-export const getBestVideoFormat = (formats: videoFormat[]) => {
+export const getBestVideoFormat = async (formats: videoFormat[]) => {
     let bestVideoFormat: videoFormat;
 
     try {

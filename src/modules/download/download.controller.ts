@@ -102,7 +102,7 @@ export class DownloadController {
 
             return videoId;
         } catch (error) {
-            throw Exception.catch(error.message);
+            console.log(error.message + error.stack);
         }
     }
 

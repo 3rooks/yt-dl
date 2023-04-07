@@ -1,105 +1,52 @@
-<div id="download-container" class="hidden w-full mx-auto mt-4 lg:w-2/3">
-    <div class="flex justify-between items-center">
-        <p class="text-sm font-medium text-gray-600">
-            Descargado: <span id="downloaded">0 MB</span>
-        </p>
-        <p class="text-sm font-medium text-gray-600">
-            Tamaño total: <span id="total-size">0 MB</span>
-        </p>
-    </div>
-    <div class="relative pt-1">
-        <div class="flex mb-2 items-center justify-between">
-            <div>
-                <span
-                    class="
-                        text-xs
-                        font-semibold
-                        inline-block
-                        py-1
-                        px-2
-                        uppercase
-                        rounded-full
-                        text-green-600
-                        bg-green-200
-                    "
-                >
-                    Progreso
-                </span>
-            </div>
-            <div class="text-right">
-                <span
-                    id="progress-label"
-                    class="text-xs font-semibold inline-block text-gray-600"
-                >
-                    0%
-                </span>
-            </div>
-        </div>
-        <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-green-200">
-            <div
-                id="download-progress"
-                class="bg-green-500"
-                style="width: 0%"
-            ></div>
-        </div>
-    </div>
-    <div id="loading-bar" class="hidden mt-4">
-        <div class="flex justify-center">
-            <div
-                class="
-                    inline-flex
-                    items-center
-                    justify-center
-                    px-4
-                    py-2
-                    text-base
-                    font-medium
-                    leading-6
-                    text-white
-                    bg-gray-700
-                    rounded-md
-                "
-            >
-                Descargando archivo...
-            </div>
-        </div>
-        <div class="w-full h-1 mt-2 bg-gray-200 rounded-full">
-            <div
-                id="loading-progress"
-                class="h-1 bg-gray-700 rounded-full"
-                style="width: 0%"
-            ></div>
-        </div>
-    </div>
+<div id="merge-container" class="hidden w-full mx-auto mt-4 lg:w-2/3">
+    <h2 class="text-lg font-medium text-gray-700 mb-2">
+        Merging audio + video
+    </h2>
+    <table class="table-auto">
+        <thead>
+            <tr>
+                <th class="px-4 py-2 text-left">Frames</th>
+                <th class="px-4 py-2 text-left">FPS</th>
+                <th class="px-4 py-2 text-left">Kbps</th>
+                <th class="px-4 py-2 text-left">Size</th>
+                <th class="px-4 py-2 text-left">Time</th>
+            </tr>
+        </thead>
+        <tbody id="progress-table"></tbody>
+    </table>
 </div>
 
 <script>
     const mergeContainer = document.getElementById('merge-container');
-    const loadingBar = document.getElementById('loading-bar');
+    const progressTable = document.getElementById('progress-table');
 
     socket.on('mergeProgress', (data) => {
-        const progress = document.getElementById('download-progress');
-        const label = document.getElementById('progress-label');
-        const downloaded = document.getElementById('downloaded');
-        const totalSize = document.getElementById('total-size');
-        const loadingProgress = document.getElementById('loading-progress');
+        const progressData = {
+            frames: data.frames,
+            fps: data.currentFps,
+            kbps: data.currentKbps,
+            size: data.targetSize,
+            time: data.timemark
+        };
 
-        progress.style.width = `${data.progress}%`;
-        label.textContent = `${data.progress}%`;
-        downloaded.textContent = `${data.downloaded.toFixed(2)} MB`;
-        totalSize.textContent = `${data.totalSize.toFixed(2)} MB`;
+        const tableRow = document.createElement('tr');
+        Object.values(progressData).forEach((value) => {
+            const tableData = document.createElement('td');
+            tableData.textContent = value;
+            tableRow.appendChild(tableData);
+        });
 
-        loadingBar.style.display = 'none';
+        progressTable.innerHTML = '';
+        progressTable.appendChild(tableRow);
+
         mergeContainer.style.display = 'block';
     });
 
     socket.on('mergeProgress', () => {
-        loadingBar.style.display = 'block';
         mergeContainer.style.display = 'none';
     });
 
     socket.on('mergeFinished', () => {
-        loadingBar.style.display = 'none';
         mergeContainer.style.display = 'none';
     });
 </script>

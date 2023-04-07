@@ -7,7 +7,6 @@ import {
     getBestAudioFormat,
     getBestVideoFormat
 } from 'src/utils/dl-fn/get-best-quality';
-import { Exception } from 'src/utils/error/exception-handler';
 import { pipeline } from 'stream/promises';
 import * as ytdlCore from 'ytdl-core';
 
@@ -20,20 +19,25 @@ export class YtdlService {
     ) {}
 
     async getBestQualityAudioVideo(videoId: string) {
-        const requestOptions = {
-            headers: {
-                cookie: this.config.get<string>(CONFIG.YT_COOKIE)
-            }
-        };
+        console.log('ESTAMOS AQUI?');
+        try {
+            const requestOptions = {
+                headers: {
+                    cookie: this.config.get<string>(CONFIG.YT_COOKIE)
+                }
+            };
 
-        const { formats } = await this.ytdl.getInfo(videoId, {
-            requestOptions
-        });
+            const { formats } = await this.ytdl.getInfo(videoId, {
+                requestOptions
+            });
 
-        const bestAudio = getBestAudioFormat(formats);
-        const bestVideo = getBestVideoFormat(formats);
+            const bestAudio = await getBestAudioFormat(formats);
+            const bestVideo = await getBestVideoFormat(formats);
 
-        return { bestAudio, bestVideo };
+            return { bestAudio, bestVideo };
+        } catch (error) {
+            console.log(error.message);
+        }
     }
 
     async downloadAudioVideo(
@@ -105,7 +109,7 @@ export class YtdlService {
 
             this.downloadGateway.downloadFinished(clientId, 'END');
         } catch (error) {
-            throw Exception.catch(error.message);
+            console.log(error.message);
         }
     }
 }

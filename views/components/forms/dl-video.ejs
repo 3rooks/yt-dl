@@ -24,15 +24,14 @@
                 text-white
                 px-4
                 py-3
-                disabled
-                cursor-not-allowed
+                disabled:opacity-50 disabled:cursor-not-allowed
             "
         >
             Send
         </button>
     </div>
 </form>
-<div id="download-link"></div>
+<div id="download-link" class="flex justify-center items-center mt-8"></div>
 
 <script>
     const form = document.getElementById('dlvideo-form');
@@ -45,27 +44,26 @@
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
 
-            // deshabilitar el botón de envío
+            // Deshabilitar el botón de envío y cambiar su estilo a gris
             sendButton.disabled = true;
             sendButton.classList.add('bg-gray-500', 'cursor-not-allowed');
 
-            const getVideoId = async () => {
-                const response = await fetch('/download/video', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        clientId: socket.id,
-                        videoUrl: data.videoUrl
-                    }),
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+            // Realizar la petición al backend
+            const response = await fetch('/download/video', {
+                method: 'POST',
+                body: JSON.stringify({
+                    clientId: socket.id,
+                    videoUrl: data.videoUrl
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
 
-                const videoId = await response.text();
-                return videoId;
-            };
+            // Obtener el ID del video del cuerpo de la respuesta
+            const videoId = await response.text();
 
-            const videoId = await getVideoId();
+            console.log('VIDEOID', videoId);
 
             if (!videoId) {
                 console.log('NO VIDEO ID');
@@ -85,17 +83,22 @@
                 );
                 document.getElementById('download-link').appendChild(link);
 
-                form.reset(); // resetear el formulario
+                form.reset(); // Resetear el formulario
                 sendButton.classList.remove(
                     'bg-gray-500',
                     'cursor-not-allowed'
                 );
-                sendButton.disabled = false; // habilitar el botón de envío
+                sendButton.disabled = false; // Habilitar el botón de envío
 
-                // eliminar el enlace de descarga después de 10 segundos
+                // // Eliminar el enlace de descarga después de 10 segundos
                 setTimeout(() => {
                     document.getElementById('download-link').removeChild(link);
                 }, 10000);
+
+                link.addEventListener('click', () => {
+                    // Ocultar el enlace de descarga
+                    link.style.display = 'none';
+                });
             }
         } catch (error) {
             console.log(error);

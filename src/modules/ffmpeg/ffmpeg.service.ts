@@ -17,37 +17,41 @@ export class FfmpegService {
         output: string,
         clientId: string
     ): Promise<void> {
-        const ffdl = this.ffmpeg();
-        ffdl.addInput(audio) // audio
-            .addInput(video) // video
-            .format(FORMAT.MP4) // format
-            .videoCodec('libx264') // códec video H.264
-            .saveToFile(output); // output file
+        try {
+            const ffdl = this.ffmpeg();
+            ffdl.addInput(audio) // audio
+                .addInput(video) // video
+                .format(FORMAT.MP4) // format
+                .videoCodec('libx264') // códec video H.264
+                .saveToFile(output); // output file
 
-        ffdl.on('progress', (progress) => {
-            const progressData = {
-                frames: progress.frames,
-                fps: progress.currentFps,
-                kbps: progress.currentKbps,
-                size: progress.targetSize,
-                time: progress.timemark
-            };
+            ffdl.on('progress', (progress) => {
+                const progressData = {
+                    frames: progress.frames,
+                    fps: progress.currentFps,
+                    kbps: progress.currentKbps,
+                    size: progress.targetSize,
+                    time: progress.timemark
+                };
 
-            // console.log(progressData);
-            this.downloadGateway.mergeProgress(clientId, progressData);
-        });
-
-        await new Promise((resolve, reject) => {
-            ffdl.on('error', (error) => {
-                reject(error);
+                // console.log(progressData);
+                this.downloadGateway.mergeProgress(clientId, progressData);
             });
 
-            ffdl.on('end', async () => {
-                await unlink(audio);
-                await unlink(video);
-                this.downloadGateway.mergeFinished(clientId, 'END');
-                resolve('END');
+            await new Promise((resolve, reject) => {
+                ffdl.on('error', (error) => {
+                    reject(error);
+                });
+
+                ffdl.on('end', async () => {
+                    await unlink(audio);
+                    await unlink(video);
+                    this.downloadGateway.mergeFinished(clientId, 'END');
+                    resolve('END');
+                });
             });
-        });
+        } catch (error) {
+            console.log(error.message);
+        }
     }
 }

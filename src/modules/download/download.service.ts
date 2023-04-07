@@ -60,40 +60,46 @@ export class DownloadService {
         outputFolder: string,
         clientId: string
     ): Promise<string> {
-        const { videoId } = videoInfo;
+        try {
+            const { videoId } = videoInfo;
 
-        const { outputAudio, outputVideo, outputFile } =
-            await outputAudioVideoFilePath(videoInfo, outputFolder);
+            const { outputAudio, outputVideo, outputFile } =
+                await outputAudioVideoFilePath(videoInfo, outputFolder);
 
-        if (await fileExists(outputFile)) return outputFile;
+            if (await fileExists(outputFile)) return outputFile;
 
-        const { bestAudio, bestVideo } =
-            await this.ytdlService.getBestQualityAudioVideo(videoId);
+            console.log('ANTES DE BEST');
+            const besties = await this.ytdlService.getBestQualityAudioVideo(
+                videoId
+            );
 
-        console.log(
-            'CONTENTLENTGy',
-            bestAudio.contentLength,
-            bestVideo.contentLength
-        );
+            if (!besties || !besties.bestAudio || !besties.bestVideo) {
+                console.log('No se encontró la mejor calidad de audio y video');
+                return null;
+            }
+            console.log('BEST', besties);
 
-        await this.ytdlService.downloadAudioVideo(
-            videoId,
-            bestAudio,
-            bestVideo,
-            outputAudio,
-            outputVideo,
-            clientId
-        );
+            await this.ytdlService.downloadAudioVideo(
+                videoId,
+                besties.bestAudio,
+                besties.bestVideo,
+                outputAudio,
+                outputVideo,
+                clientId
+            );
 
-        await this.ffmpegService.mergeAudioVideo(
-            outputAudio,
-            outputVideo,
-            outputFile,
-            clientId
-        );
+            await this.ffmpegService.mergeAudioVideo(
+                outputAudio,
+                outputVideo,
+                outputFile,
+                clientId
+            );
 
-        console.log(`Finished => ${videoInfo.title}`);
-        return outputFile;
+            console.log(`Finished => ${videoInfo.title}`);
+            return outputFile;
+        } catch (error) {
+            console.log(error.message + error.stack);
+        }
     }
 
     public async downloadVideos(
