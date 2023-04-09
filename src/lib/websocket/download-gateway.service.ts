@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
     OnGatewayConnection,
     OnGatewayDisconnect,
@@ -6,6 +7,8 @@ import {
     WebSocketServer
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { DownloadProgress } from 'src/interfaces/download-progress.interface';
+import { MergeProgress } from 'src/interfaces/merge-progress.interface';
 
 @WebSocketGateway()
 export class DownloadGateway
@@ -13,61 +16,39 @@ export class DownloadGateway
 {
     @WebSocketServer() server: Server;
     private clients = {};
+    private logger = new Logger();
 
     afterInit() {
-        console.log('WebSocket gateway initialized');
+        this.logger.log('WebSocket gateway initialized');
     }
 
     handleConnection(client: Socket) {
-        console.log(`client connected: ${client.id}`);
+        this.logger.log(`client connected: ${client.id}`);
         this.clients[client.id] = client;
     }
 
     handleDisconnect(client: Socket) {
-        console.log(`client disconnected: ${client.id}`);
+        this.logger.log(`client disconnected: ${client.id}`);
         delete this.clients[client.id];
     }
 
-    mergeProgress(clientId: string, payload: object) {
+    mergeProgress(clientId: string, payload: MergeProgress) {
         const client = this.clients[clientId];
-        if (client) {
-            console.log('PROGRESS', payload);
-            client.emit('mergeProgress', payload);
-        }
+        if (client) client.emit('mergeProgress', payload);
     }
 
     mergeFinished(clientId: string, status: string) {
         const client = this.clients[clientId];
-        if (client) {
-            client.emit('mergeFinished', status);
-        }
+        if (client) client.emit('mergeFinished', status);
     }
 
-    downloadProgress(clientId: string, payload: Asd) {
+    downloadProgress(clientId: string, payload: DownloadProgress) {
         const client = this.clients[clientId];
-        if (client) {
-            client.emit('downloadProgress', payload);
-        }
+        if (client) client.emit('downloadProgress', payload);
     }
 
     downloadFinished(clientId: string, status: string) {
         const client = this.clients[clientId];
-        if (client) {
-            client.emit('downloadFinished', status);
-        }
+        if (client) client.emit('downloadFinished', status);
     }
-}
-
-interface Asd {
-    progress: number;
-    downloaded: number;
-    totalSize: number;
-}
-
-interface Progress {
-    frames: number;
-    fps: number;
-    kbps: number;
-    sizeMb: number;
-    time: string;
 }

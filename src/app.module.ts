@@ -5,6 +5,7 @@ import { ClusterModule } from './config/cluster/cluster.module';
 import { DatabaseModule } from './config/database/database.module';
 import { CONFIG } from './constants/config';
 import { DownloadModule } from './modules/download/download.module';
+import { CleanFolderTask } from './utils/clean-folder';
 
 @Module({
     imports: [
@@ -13,7 +14,8 @@ import { DownloadModule } from './modules/download/download.module';
         DatabaseModule,
         DownloadModule
     ],
-    controllers: [AppController]
+    controllers: [AppController],
+    providers: [CleanFolderTask]
 })
 export class AppModule {
     static port: number;

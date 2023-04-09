@@ -10,6 +10,8 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
+import { unlink } from 'fs/promises';
+import { FORMAT } from 'src/constants/video-formats';
 import { Downloads } from 'src/interfaces/downloads.interface';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
@@ -34,6 +36,54 @@ export class DownloadController {
         private readonly downloadService: DownloadService,
         private readonly googleService: GoogleapiService
     ) {}
+
+    @Post('video')
+    async prueba(
+        @Body() { clientId, videoUrl }: DownloadVideoDto,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        try {
+            if (!isValidYoutubeUrl(videoUrl))
+                throw new Exception({
+                    message: 'INVALID_YOUTUBE_URL',
+                    status: 'BAD_REQUEST'
+                });
+
+            const { videoId } = await getChannelIdVideoId(videoUrl);
+
+            const videoInfo = await this.googleService.getVideoInfo(videoId);
+
+            if (!videoInfo)
+                throw new Exception({
+                    message: 'LIVE_VIDEO_NOT_ALLOWED',
+                    status: 'BAD_REQUEST'
+                });
+
+            const filePath = await this.downloadService.downloadVideo(
+                videoInfo,
+                this.mainFolder,
+                clientId
+            );
+
+            const name = `${videoInfo.title}-${videoInfo.videoId}`;
+            const encodeFileName = encodeURIComponent(name);
+
+            res.set({
+                'Content-Type': 'video/mp4',
+                'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.MP4}"`
+            });
+
+            const fileStream = createReadStream(filePath);
+
+            fileStream.on('close', async () => {
+                await unlink(filePath);
+            });
+
+            return new StreamableFile(fileStream);
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
+    }
 
     @Post('video')
     async downloadVideo(@Body() { clientId, videoUrl }: DownloadVideoDto) {
@@ -182,13 +232,20 @@ export class DownloadController {
             const { downloads } = exist;
             const filePath = downloads[0].filePath;
             const fileName = downloads[0].videoInfo.title;
-            const encodeFileName = encodeURIComponent(fileName);
+            const video = downloads[0].videoInfo.videoId;
+            const encodeFileName = encodeURIComponent(`${fileName}-${video}`);
             res.set({
                 'Content-Type': 'video/mp4',
                 'Content-Disposition': `attachment; filename="${encodeFileName}.mp4"`
             });
 
-            return new StreamableFile(createReadStream(filePath));
+            const fileStream = createReadStream(filePath);
+
+            fileStream.on('close', async () => {
+                await unlink(filePath);
+            });
+
+            return new StreamableFile(fileStream);
         } catch (error) {
             throw Exception.catch(error.message);
         }

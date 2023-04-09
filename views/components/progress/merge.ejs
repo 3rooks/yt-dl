@@ -107,7 +107,7 @@
         framesElem.innerText = data.frames;
         fpsElem.innerText = data.fps;
         kbpsElem.innerText = data.kbps;
-        sizeElem.innerText = data.size;
+        sizeElem.innerText = (data.size / 1024).toFixed(1) + ' MB';
         timeElem.innerText = data.time;
 
         mergeContainer.classList.remove('hidden');

@@ -1,12 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createWriteStream } from 'fs';
+import { unlink } from 'fs/promises';
 import { CONFIG } from 'src/constants/config';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
+import { emitDownloadProgress } from 'src/utils/dl-fn/dl-progress.fn';
 import {
     getBestAudioFormat,
     getBestVideoFormat
 } from 'src/utils/dl-fn/get-best-quality';
+import { Exception } from 'src/utils/error/exception-handler';
 import { pipeline } from 'stream/promises';
 import * as ytdlCore from 'ytdl-core';
 
@@ -19,7 +22,6 @@ export class YtdlService {
     ) {}
 
     async getBestQualityAudioVideo(videoId: string) {
-        console.log('ESTAMOS AQUI?');
         try {
             const requestOptions = {
                 headers: {
@@ -69,47 +71,25 @@ export class YtdlService {
                 requestOptions
             });
 
-            // Inicializar la variable para llevar el registro del progreso actual
-            let downloadedBytes = 0;
-            const totalSize =
-                Number(bestAudio.contentLength) +
-                Number(bestVideo.contentLength);
-
-            // Escuchar el evento 'progress' de la descarga de audio y enviar el progreso actual
-            audioReadable.on('data', (chunk: any) => {
-                downloadedBytes += chunk.length;
-                sendProgress(downloadedBytes);
-            });
-
-            // Escuchar el evento 'progress' de la descarga de video y enviar el progreso actual
-            videoReadable.on('data', (chunk: any) => {
-                downloadedBytes += chunk.length;
-                sendProgress(downloadedBytes);
-            });
-
-            // Enviar la información del progreso al cliente
-            const sendProgress = (downloadedBytes: number) => {
-                const downloadedMb = downloadedBytes / (1024 * 1024);
-                const totalSizeMb = totalSize / (1024 * 1024);
-                const progressPercent = Math.floor(
-                    (downloadedBytes / totalSize) * 100
-                );
-
-                this.downloadGateway.downloadProgress(clientId, {
-                    progress: progressPercent,
-                    downloaded: downloadedMb,
-                    totalSize: totalSizeMb
-                });
-            };
+            emitDownloadProgress(
+                clientId,
+                bestAudio,
+                bestVideo,
+                audioReadable,
+                videoReadable,
+                this.downloadGateway
+            );
 
             await Promise.all([
                 pipeline([audioReadable, audioWriteable]),
                 pipeline([videoReadable, videoWriteable])
             ]);
 
-            this.downloadGateway.downloadFinished(clientId, 'END');
+            this.downloadGateway.downloadFinished(clientId, 'Downloaded');
         } catch (error) {
-            console.log(error.message);
+            await unlink(outputAudio);
+            await unlink(outputVideo);
+            throw Exception.catch(error.message);
         }
     }
 }

@@ -2,7 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import * as ffmpegCore from 'fluent-ffmpeg';
 import { unlink } from 'fs/promises';
 import { FORMAT } from 'src/constants/video-formats';
+import {
+    FfmpegProgress,
+    MergeProgress
+} from 'src/interfaces/merge-progress.interface';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
+import { Exception } from 'src/utils/error/exception-handler';
 
 @Injectable()
 export class FfmpegService {
@@ -26,32 +31,32 @@ export class FfmpegService {
                 .on('progress', (progress) => handleProgress(progress))
                 .saveToFile(output); // output file
 
-            const handleProgress = (progress) => {
-                const progressData = {
+            const handleProgress = (progress: FfmpegProgress) => {
+                const progressData: MergeProgress = {
                     frames: progress.frames,
                     fps: progress.currentFps,
                     kbps: progress.currentKbps,
                     size: progress.targetSize,
                     time: progress.timemark
                 };
-
                 this.downloadGateway.mergeProgress(clientId, progressData);
             };
 
             await new Promise((resolve, reject) => {
-                ffdl.on('error', (error) => {
+                ffdl.on('error', async (error) => {
+                    await unlink(output);
                     reject(error);
                 });
 
                 ffdl.on('end', async () => {
                     await unlink(audio);
                     await unlink(video);
-                    this.downloadGateway.mergeFinished(clientId, 'END');
-                    resolve('END');
+                    this.downloadGateway.mergeFinished(clientId, 'Finished');
+                    resolve('Finished');
                 });
             });
         } catch (error) {
-            console.log(error.message);
+            throw Exception.catch(error.message);
         }
     }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { createWriteStream } from 'fs';
 import { writeFile } from 'fs/promises';
@@ -6,6 +6,7 @@ import * as miniget from 'miniget';
 import { Model } from 'mongoose';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { Downloads, IVideoInfo } from 'src/interfaces/downloads.interface';
+import { Exception } from 'src/utils/error/exception-handler';
 import { fileExists } from 'src/utils/file-exists';
 import { outputAudioVideoFilePath } from 'src/utils/ytdl-paths';
 import { pipeline } from 'stream/promises';
@@ -15,6 +16,8 @@ import { Download, DownloadDocument } from './schema/download.schema';
 
 @Injectable()
 export class DownloadService {
+    private logger = new Logger();
+
     constructor(
         @InjectModel(Download.name)
         private readonly downloadModel: Model<DownloadDocument>,
@@ -68,21 +71,13 @@ export class DownloadService {
 
             if (await fileExists(outputFile)) return outputFile;
 
-            console.log('ANTES DE BEST');
-            const besties = await this.ytdlService.getBestQualityAudioVideo(
-                videoId
-            );
-
-            if (!besties || !besties.bestAudio || !besties.bestVideo) {
-                console.log('No se encontró la mejor calidad de audio y video');
-                return null;
-            }
-            console.log('BEST', besties);
+            const { bestAudio, bestVideo } =
+                await this.ytdlService.getBestQualityAudioVideo(videoId);
 
             await this.ytdlService.downloadAudioVideo(
                 videoId,
-                besties.bestAudio,
-                besties.bestVideo,
+                bestAudio,
+                bestVideo,
                 outputAudio,
                 outputVideo,
                 clientId
@@ -95,10 +90,11 @@ export class DownloadService {
                 clientId
             );
 
-            console.log(`Finished => ${videoInfo.title}`);
+            this.logger.log(`Downloaded => ${videoInfo.title}`);
+
             return outputFile;
         } catch (error) {
-            console.log(error.message + error.stack);
+            throw Exception.catch(error.message);
         }
     }
 
