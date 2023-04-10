@@ -2,7 +2,6 @@ import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
-import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import * as uuid from 'uuid-random';
 import { Exception } from './error/exception-handler';
@@ -55,31 +54,3 @@ export const outputAudioVideoFilePath = async (
         throw Exception.catch(error.message);
     }
 };
-
-export const outputTextImagePath = async (
-    channelInfo: IChannelInfo,
-    outputFolder: string
-): Promise<TxtAndImageOutput> => {
-    const { name, channelId } = channelInfo;
-
-    const FOLDER_NAME = `${name}_${channelId}`
-        .replace(/[/\\?%*:|"<>]/g, '')
-        .trim();
-    const TEMP_FILE = `${FOLDER_NAME}/${TEMP}`.trim();
-    const TEMP_FOLDER = join(outputFolder, TEMP_FILE).trim();
-
-    if (!existsSync(TEMP_FOLDER)) await mkdir(TEMP_FOLDER, { recursive: true });
-
-    const IMAGE_TEMPLATE_FILE = `image=${Date.now()}.${FORMAT.JPG}`.trim();
-    const INFO_TEMPLATE_FILE = `info=${Date.now()}.${FORMAT.TXT}`.trim();
-
-    const outputImage = join(TEMP_FOLDER, IMAGE_TEMPLATE_FILE).trim();
-    const outputText = join(TEMP_FOLDER, INFO_TEMPLATE_FILE).trim();
-
-    return { outputImage, outputText };
-};
-
-interface TxtAndImageOutput {
-    outputImage: string;
-    outputText: string;
-}

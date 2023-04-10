@@ -29,15 +29,16 @@ export class CompressorService {
             this.archive.directory(folderPath, false);
 
             let compressedBytes = 0;
+            const totalSize = this.archive.pointer() / (1024 * 1024); // Obtener tamaño total del archivo comprimido
+
             this.archive.on('data', (chunk: Buffer) => {
-                console.log(chunk.length, this.archive.pointer());
-                compressedBytes += chunk.length;
+                compressedBytes += chunk.length; // Actualizar la cantidad de bytes comprimidos
                 const compressedMB = Math.round(
                     compressedBytes / (1024 * 1024)
                 );
                 const progressPayload = {
                     progress: compressedMB,
-                    totalSize: this.archive.pointer() / (1024 * 1024)
+                    totalSize: totalSize
                 };
                 this.downloadGateway.downloadChannelProgress(
                     clientId,

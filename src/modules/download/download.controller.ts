@@ -89,12 +89,12 @@ export class DownloadController {
             const { name } = await this.googleService.getChannelInfo(channelId);
             const channelName = `${name}_${channelId}`;
 
-            const allIdsChannel =
+            const allVideosChannel =
                 await this.googleService.getAllVideosFromChannel(channelId);
 
             const { channelFolder, outputZip } =
                 await this.downloadService.downloadVideos(
-                    allIdsChannel,
+                    allVideosChannel,
                     channelName,
                     clientId
                 );
@@ -115,6 +115,7 @@ export class DownloadController {
 
             return new StreamableFile(fileStream);
         } catch (error) {
+            console.log(error.message + error.stack);
             throw Exception.catch(error.message);
         }
     }
