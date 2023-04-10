@@ -5,6 +5,11 @@ export class DownloadChannelDto {
     @ApiProperty()
     @IsNotEmpty()
     @IsString()
+    public readonly clientId: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
     @IsUrl()
     public readonly channelUrl: string;
 }

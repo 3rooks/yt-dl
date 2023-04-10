@@ -6,6 +6,7 @@ import * as miniget from 'miniget';
 import { Model } from 'mongoose';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { Downloads, IVideoInfo } from 'src/interfaces/downloads.interface';
+import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { fileExists } from 'src/utils/file-exists';
 import { outputAudioVideoFilePath } from 'src/utils/ytdl-paths';
@@ -22,7 +23,8 @@ export class DownloadService {
         @InjectModel(Download.name)
         private readonly downloadModel: Model<DownloadDocument>,
         private readonly ffmpegService: FfmpegService,
-        private readonly ytdlService: YtdlService
+        private readonly ytdlService: YtdlService,
+        private readonly downloadGateway: DownloadGateway
     ) {}
 
     public async create(data: Download): Promise<DownloadDocument> {
@@ -62,14 +64,17 @@ export class DownloadService {
         videoInfo: IVideoInfo,
         outputFolder: string,
         clientId: string
-    ): Promise<string> {
+    ): Promise<{
+        outputPath: string;
+        outputFile: string;
+    }> {
         try {
             const { videoId } = videoInfo;
 
-            const { outputAudio, outputVideo, outputFile } =
+            const { outputPath, outputAudio, outputVideo, outputFile } =
                 await outputAudioVideoFilePath(videoInfo, outputFolder);
 
-            if (await fileExists(outputFile)) return outputFile;
+            if (await fileExists(outputFile)) return { outputPath, outputFile };
 
             const { bestAudio, bestVideo } =
                 await this.ytdlService.getBestQualityAudioVideo(videoId);
@@ -92,29 +97,48 @@ export class DownloadService {
 
             this.logger.log(`Downloaded => ${videoInfo.title}`);
 
-            return outputFile;
+            return { outputPath, outputFile };
         } catch (error) {
+            console.log('DOWNLOADVIDEO',error);
             throw Exception.catch(error.message);
         }
     }
 
     public async downloadVideos(
         videoInfos: IVideoInfo[],
-        outputFolder: string
-    ): Promise<Downloads[]> {
-        const videoPromises = videoInfos.map(async (videoInfo) => {
-            // const output = await this.downloadVideo(videoInfo, outputFolder);
+        outputFolder: string,
+        clientId: string
+    ) {
+        try {
+            let progressVideos = 0;
+            const totalVideos = videoInfos.length;
 
-            const newDownload: Downloads = {
-                videoId: videoInfo.videoId,
-                filePath: '',
-                videoInfo
-            };
+            const videoPromises = videoInfos.map(async (videoInfo) => {
+                const { outputPath } = await this.downloadVideo(
+                    videoInfo,
+                    outputFolder,
+                    clientId
+                );
+                progressVideos++;
+                const progressPayload = {
+                    progressVideos,
+                    totalVideos
+                };
 
-            return newDownload;
-        });
+                this.downloadGateway.downloadVideosChannel(
+                    clientId,
+                    progressPayload
+                );
 
-        return await Promise.all([...videoPromises]);
+                return outputPath;
+            });
+
+            const results = await Promise.all([...videoPromises]);
+
+            return results[0];
+        } catch (error) {
+            console.log('VIDEOSSSS',error);
+        }
     }
 
     public async downloadTextAndImage(

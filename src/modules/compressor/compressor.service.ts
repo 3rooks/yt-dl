@@ -3,19 +3,60 @@ import { Archiver } from 'archiver';
 import { createWriteStream } from 'fs';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
+import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
+import { Exception } from 'src/utils/error/exception-handler';
 
 @Injectable()
 export class CompressorService {
-    constructor(@Inject('COMPRESSOR') private readonly archive: Archiver) {}
+    constructor(
+        @Inject('COMPRESSOR') private readonly archive: Archiver,
+        private readonly downloadGateway: DownloadGateway
+    ) {}
 
-    async compressFolder(folderPath: string, channelName: string) {
-        const outputZipFile = join(folderPath, `${channelName}.${FORMAT.ZIP}`);
-        const outputStream = createWriteStream(outputZipFile);
+    async compressFolder(
+        folderPath: string,
+        channelName: string,
+        outputFile: string,
+        clientId: string
+    ) {
+        try {
+            const fileName = `${channelName}.${FORMAT.ZIP}`;
 
-        this.archive.pipe(outputStream);
-        this.archive.directory(folderPath, false);
-        await this.archive.finalize();
+            const outputZipFile = join(outputFile, fileName);
+            const outputStream = createWriteStream(outputZipFile);
 
-        return outputZipFile;
+            this.archive.pipe(outputStream);
+            this.archive.directory(folderPath, false);
+
+            let compressedBytes = 0;
+            this.archive.on('data', (chunk: Buffer) => {
+                console.log(chunk.length, this.archive.pointer());
+                compressedBytes += chunk.length;
+                const compressedMB = Math.round(
+                    compressedBytes / (1024 * 1024)
+                );
+                const progressPayload = {
+                    progress: compressedMB,
+                    totalSize: this.archive.pointer() / (1024 * 1024)
+                };
+                this.downloadGateway.downloadChannelProgress(
+                    clientId,
+                    progressPayload
+                );
+            });
+
+            this.archive.on('finish', () => {
+                this.downloadGateway.downloadChannelFinished(
+                    clientId,
+                    'Finished'
+                );
+            });
+
+            await this.archive.finalize();
+
+            return outputZipFile;
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
     }
 }

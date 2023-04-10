@@ -5,10 +5,12 @@ import { FORMAT } from 'src/constants/video-formats';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import * as uuid from 'uuid-random';
+import { Exception } from './error/exception-handler';
 
 const TEMP = 'temp';
 
 interface FilePathsTemp {
+    outputPath: string;
     outputAudio: string;
     outputVideo: string;
     outputFile: string;
@@ -21,16 +23,14 @@ export const outputAudioVideoFilePath = async (
     try {
         const { channelId, channelTitle, videoId, title } = videoInfo;
 
-        // const FOLDER_NAME = `${channelTitle}_${channelId}`
-        //     .replace(/[/\\?%*:|"<>]/g, '')
-        //     .trim();
+        const FOLDER_NAME = `${channelTitle}_${channelId}`
+            .replace(/[/\\?%*:|"<>]/g, '')
+            .trim();
 
-        // const TEMP_FILE = `${FOLDER_NAME}/${TEMP}`.trim();
-        // const TEMP_FOLDER = join(outputFolder, TEMP_FILE).trim();
-        // const FOLDER_PATH = join(outputFolder, FOLDER_NAME).trim();
+        const FOLDER_PATH = join(outputFolder, FOLDER_NAME).trim();
 
-        // if (!existsSync(TEMP_FOLDER))
-        //     await mkdir(TEMP_FOLDER, { recursive: true });
+        if (!existsSync(FOLDER_PATH))
+            await mkdir(FOLDER_PATH, { recursive: true });
 
         const AUDIO_TEMPLATE_FILE = `audio=${uuid()}.${FORMAT.MP3}`.trim();
         const VIDEO_TEMPLATE_FILE = `video=${uuid()}.${FORMAT.MP4}`.trim();
@@ -41,13 +41,18 @@ export const outputAudioVideoFilePath = async (
             .replace(/[^\w\dа-яА-Я.\s]/g, '') // removes unwanted characters, except spaces
             .trim();
 
-        const outputAudio = join(outputFolder, AUDIO_TEMPLATE_FILE).trim();
-        const outputVideo = join(outputFolder, VIDEO_TEMPLATE_FILE).trim();
-        const outputFile = join(outputFolder, FILE_TEMPLATE).trim();
+        const outputAudio = join(FOLDER_PATH, AUDIO_TEMPLATE_FILE).trim();
+        const outputVideo = join(FOLDER_PATH, VIDEO_TEMPLATE_FILE).trim();
+        const outputFile = join(FOLDER_PATH, FILE_TEMPLATE).trim();
 
-        return { outputAudio, outputVideo, outputFile };
+        return {
+            outputPath: FOLDER_PATH,
+            outputAudio,
+            outputVideo,
+            outputFile
+        };
     } catch (error) {
-        console.log(error.message);
+        throw Exception.catch(error.message);
     }
 };
 

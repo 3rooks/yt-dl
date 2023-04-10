@@ -1,28 +1,16 @@
-import {
-    Body,
-    Controller,
-    Get,
-    Param,
-    Post,
-    Res,
-    StreamableFile
-} from '@nestjs/common';
+import { Body, Controller, Post, Res, StreamableFile } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
-import { unlink } from 'fs/promises';
+import { rm, unlink } from 'fs/promises';
 import { FORMAT } from 'src/constants/video-formats';
-import { Downloads } from 'src/interfaces/downloads.interface';
+import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
-import {
-    createChannel,
-    getVideosToDownload,
-    updateChannelInfo
-} from 'src/utils/dl-fn/channel-dl-fn';
 import { Exception } from 'src/utils/error/exception-handler';
 import { isValidYoutubeUrl } from 'src/utils/get-video-id';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
+import { CompressorService } from '../compressor/compressor.service';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
@@ -34,11 +22,12 @@ export class DownloadController {
 
     constructor(
         private readonly downloadService: DownloadService,
-        private readonly googleService: GoogleapiService
+        private readonly googleService: GoogleapiService,
+        private readonly compressorService: CompressorService
     ) {}
 
     @Post('video')
-    async prueba(
+    async downloadVideo(
         @Body() { clientId, videoUrl }: DownloadVideoDto,
         @Res({ passthrough: true }) res: Response
     ) {
@@ -59,13 +48,14 @@ export class DownloadController {
                     status: 'BAD_REQUEST'
                 });
 
-            const filePath = await this.downloadService.downloadVideo(
-                videoInfo,
-                this.mainFolder,
-                clientId
-            );
+            const { outputPath, outputFile } =
+                await this.downloadService.downloadVideo(
+                    videoInfo,
+                    this.mainFolder,
+                    clientId
+                );
 
-            const name = `${videoInfo.title}-${videoInfo.videoId}`;
+            const name = `${videoInfo.title}_${videoInfo.videoId}`;
             const encodeFileName = encodeURIComponent(name);
 
             res.set({
@@ -73,10 +63,10 @@ export class DownloadController {
                 'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.MP4}"`
             });
 
-            const fileStream = createReadStream(filePath);
+            const fileStream = createReadStream(outputFile);
 
             fileStream.on('close', async () => {
-                await unlink(filePath);
+                await rm(outputPath, { recursive: true, force: true });
             });
 
             return new StreamableFile(fileStream);
@@ -85,81 +75,11 @@ export class DownloadController {
         }
     }
 
-    @Post('video')
-    async downloadVideo(@Body() { clientId, videoUrl }: DownloadVideoDto) {
-        try {
-            if (!isValidYoutubeUrl(videoUrl))
-                throw new Exception({
-                    message: 'INVALID_YOUTUBE_URL',
-                    status: 'BAD_REQUEST'
-                });
-
-            const { channelId, videoId } = await getChannelIdVideoId(videoUrl);
-
-            let exist = await this.downloadService.getById(channelId);
-
-            if (!exist) {
-                exist = await createChannel(
-                    channelId,
-                    this.mainFolder,
-                    this.googleService,
-                    this.downloadService
-                );
-            } else {
-                exist = await updateChannelInfo(
-                    exist,
-                    channelId,
-                    this.mainFolder,
-                    this.googleService,
-                    this.downloadService
-                );
-            }
-
-            const existVideo = exist.downloads.find(
-                (video) => video.videoId === videoId
-            );
-
-            if (!existVideo) {
-                const videoInfo = await this.googleService.getVideoInfo(
-                    videoId
-                );
-
-                if (!videoInfo)
-                    throw new Exception({
-                        message: 'LIVE_VIDEO_NOT_ALLOWED',
-                        status: 'BAD_REQUEST'
-                    });
-
-                const filePath = await this.downloadService.downloadVideo(
-                    videoInfo,
-                    this.mainFolder,
-                    clientId
-                );
-
-                exist.downloads.push({
-                    videoId,
-                    filePath,
-                    videoInfo
-                });
-
-                await this.downloadService.updatedDownloadsById(
-                    exist._id,
-                    exist.downloads
-                );
-
-                return videoId;
-            }
-
-            return videoId;
-        } catch (error) {
-            console.log(error.message + error.stack);
-        }
-    }
-
     @Post('channel')
     async downloadChannel(
-        @Body() { channelUrl }: DownloadChannelDto
-    ): Promise<Downloads[]> {
+        @Body() { clientId, channelUrl }: DownloadChannelDto,
+        @Res({ passthrough: true }) res: Response
+    ) {
         try {
             if (!isValidYoutubeUrl(channelUrl))
                 throw new Exception({
@@ -168,81 +88,45 @@ export class DownloadController {
                 });
 
             const { channelId } = await getChannelIdVideoId(channelUrl);
+            const { name } = await this.googleService.getChannelInfo(channelId);
+            const channelName = `${name}_${channelId}`;
 
-            let exist = await this.downloadService.getById(channelId);
+            const allIdsChannel =
+                await this.googleService.getAllVideosFromChannel(channelId);
 
-            if (!exist) {
-                exist = await createChannel(
-                    channelId,
-                    this.mainFolder,
-                    this.googleService,
-                    this.downloadService
-                );
-            } else {
-                exist = await updateChannelInfo(
-                    exist,
-                    channelId,
-                    this.mainFolder,
-                    this.googleService,
-                    this.downloadService
-                );
+            const videosToDownload: IVideoInfo[] = [];
+
+            for (const id of allIdsChannel) {
+                const videoInfo = await this.googleService.getVideoInfo(id);
+                if (!videoInfo) continue;
+                videosToDownload.push(videoInfo);
             }
 
-            const videosToDownload = await getVideosToDownload(
-                exist,
-                this.googleService
-            );
-
-            const downloads = await this.downloadService.downloadVideos(
+            const outputFolder = await this.downloadService.downloadVideos(
                 videosToDownload,
-                this.mainFolder
+                this.mainFolder,
+                clientId
             );
 
-            exist.downloads.push(...downloads);
-            const updated = await this.downloadService.updatedDownloadsById(
-                exist._id,
-                exist.downloads
+            const archive = await this.compressorService.compressFolder(
+                outputFolder,
+                channelName,
+                this.mainFolder,
+                clientId
             );
 
-            return updated.downloads;
-        } catch (error) {
-            throw Exception.catch(error.message);
-        }
-    }
+            const encodeFileName = encodeURIComponent(channelName);
 
-    @Get('video/:id')
-    async getVideoFileById(
-        @Param('id') videoId: string,
-        @Res({ passthrough: true }) res: Response
-    ): Promise<StreamableFile> {
-        try {
-            const exist = await this.downloadService.getVideoFileById(videoId);
-
-            if (!exist) {
-                res.set({
-                    'Content-Type': 'application/json'
-                });
-
-                throw new Exception({
-                    status: 'NOT_FOUND',
-                    message: 'VIDEO_NOT_FOUND'
-                });
-            }
-
-            const { downloads } = exist;
-            const filePath = downloads[0].filePath;
-            const fileName = downloads[0].videoInfo.title;
-            const video = downloads[0].videoInfo.videoId;
-            const encodeFileName = encodeURIComponent(`${fileName}-${video}`);
             res.set({
-                'Content-Type': 'video/mp4',
-                'Content-Disposition': `attachment; filename="${encodeFileName}.mp4"`
+                'Content-Type': 'application/zip',
+                'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.ZIP}"`
             });
 
-            const fileStream = createReadStream(filePath);
+            const fileStream = createReadStream(archive);
 
             fileStream.on('close', async () => {
-                await unlink(filePath);
+                await rm(outputFolder, { recursive: true, force: true });
+                await unlink(archive);
             });
 
             return new StreamableFile(fileStream);

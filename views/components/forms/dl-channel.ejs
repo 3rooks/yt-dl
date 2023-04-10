@@ -1,5 +1,5 @@
-<form id="dl-video-form" class="w-full md:w-8/12 lg:w-6/12 mx-auto">
-    <h2 class="text-center text-lg font-bold mb-4">VIDEO URL:</h2>
+<form id="dl-channel-form" class="w-full md:w-8/12 lg:w-6/12 mx-auto">
+    <h2 class="text-center text-lg font-bold mb-4">CHANNEL URL:</h2>
     <div
         class="
             flex
@@ -12,8 +12,8 @@
         <input
             type="text"
             class="w-full border-none focus:outline-none px-4 py-3"
-            placeholder="Video URL"
-            name="videoUrl"
+            placeholder="Channel URL"
+            name="channelUrl"
             required
         />
         <button
@@ -46,7 +46,7 @@
     ></button>
 </div>
 <script>
-    const form = document.getElementById('dl-video-form');
+    const form = document.getElementById('dl-channel-form');
     const sendButton = form.querySelector('button[type="submit"]');
     const downloadLink = document.getElementById('download-link');
     const buttonContainer = document.getElementById('dl-btn-container');
@@ -62,11 +62,11 @@
             sendButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
             sendButton.classList.add('bg-gray-500', 'cursor-not-allowed');
 
-            const response = await fetch('/download/video', {
+            const response = await fetch('/download/channel', {
                 method: 'POST',
                 body: JSON.stringify({
                     clientId: socket.id,
-                    videoUrl: data.videoUrl
+                    channelUrl: data.channelUrl
                 }),
                 headers: {
                     'Content-Type': 'application/json'
@@ -122,4 +122,9 @@
             errorContainer.appendChild(errorText);
         }
     });
+
+    const a =
+        '__Secure-3PSIDCC=AFvIBn-zTy9Iyxo_p3MbiRttJxMWBAjrJVHNTAPqjeRuTTFJIwE1FQfi8WfcHBDj47MGuj8ToF4Q; __Secure-1PSIDCC=AFvIBn8Vte3fmJqIPUWvNVBgAFpxRrp16TJ0F-0xquPMy_wAE-a-zBNjedkCWXo-84caToJX6r2e; SIDCC=AFvIBn9BirmDmgSH7ma6tBEY-dKDEDeQzRC-DLZbMia_QarU_HivbUz3uKXg0KP7sODTvl7T3K4; SID=TwhxhXLhKogtwo4OF9bxVdTjy9go1Fgsnx9AVyY6Qu4BpZjDTbYtgN0fmST2WttgzgE7Zg.; __Secure-3PAPISID=L922J7clexrkUvBH/AYQpECRbtyhcIcf-f; __Secure-1PAPISID=L922J7clexrkUvBH/AYQpECRbtyhcIcf-f; __Secure-1PSID=TwhxhXLhKogtwo4OF9bxVdTjy9go1Fgsnx9AVyY6Qu4BpZjD4BHoBPFmZNMzFlY-Wryx2g.; SAPISID=L922J7clexrkUvBH/AYQpECRbtyhcIcf-f; __Secure-3PSID=TwhxhXLhKogtwo4OF9bxVdTjy9go1Fgsnx9AVyY6Qu4BpZjDzUVmBVQZMpzeD-AdLF8Ibw.; APISID=MWT55kaK_s0EJrzb/Aotp7vdf31Amlp7Nv; SSID=ASaAXxduRGqxJRmdF; HSID=A65lIAjB0pBDFp0Lb; wide=1; PREF=tz=America.Buenos_Aires&f5=30000&f7=140&gl=US&hl=en&f6=40000000; LOGIN_INFO=AFmmF2swRAIgP9gyF00LijbZbij4NMS3A9tQkhfh64CqJ-4Y6r4ZLjICIF_0iMarWkPvJp2z0IAht3M-jkUEv6gDXjR3QKwFQ9Ck:QUQ3MjNmelR4SDZvOGNwWG9ZY2Q2QzZpZU5ZV3dqRWdUb3I3TmZTSUVJNjB2c1V1UEtSQlFsa1VaeGpsbmFrUG1YZmRycVhNR084X3hzMjZ5N3V0RVRWb0FlWGxJM0cwQ19rV2ZZVHlxd2N4LTd1MnRxakFfRUxic21xTFR5Yzh6cmtCSGZTemJwQXdFQkFETzVKSmstU1A2bVEzWEpmbmhn; DEVICE_INFO=ChxOekU0TnpRM01ESTBORFkzTXpnNE9UY3lOZz09EJuM/J0GGJuM/J0G; YSC=93dKXFkI8ng; VISITOR_INFO1_LIVE=Vw9baW2rDbA;';
+    const b =
+        '__Secure-3PSIDCC=AFvIBn_iQSJytKRuW6NgsyAqMzQqKr0pmy1yZTS2oiPNPMCPesGvK9vFzuJqo0UG9Q5qPrzaQX24; __Secure-1PSIDCC=AFvIBn82epPSQbS3to0Ep9KWUL9ToSHivUVMc9N_RKnBEJhk-4PNGF2GH_-wkISy0vy9pAFI9A; SID=VAhxhbhGlyIE6pKfhnnwFihWtZ3hIcPH3jg3z1Vd0I9eRMYGWA40zolU2y7SuKIjNP6VZw.; __Secure-1PAPISID=XrIdQPQRxwg6A6Iy/Aoz4kS8MMh0GLjw1T; __Secure-1PSID=VAhxhbhGlyIE6pKfhnnwFihWtZ3hIcPH3jg3z1Vd0I9eRMYGLTph4lqVxXy493IYjqVQzg.; SAPISID=XrIdQPQRxwg6A6Iy/Aoz4kS8MMh0GLjw1T; __Secure-3PSID=VAhxhbhGlyIE6pKfhnnwFihWtZ3hIcPH3jg3z1Vd0I9eRMYGd14-LHLu7ZgYKAUPnr5tLA.; APISID=1t8k7CFLe6kCHO6u/A6JoQg_uGy2fVsLTa; SSID=A4J4d-WK2cs8aDaER; SIDCC=AFvIBn8EEDCswA_850ZeqgI6t-JqBvSZOebVUkTBOtA3jGGS6UaeSilBaF4YKO4seug2vwWIMiQ; HSID=Alf_0crY4K3M_zsTW; LOGIN_INFO=AFmmF2swRQIhAPPMYc-6rqo1HRBGC8A032hw7yVm1-mnxCvg4beJ8JEKAiBDCWzRyvM9cSNrlo-QxveZ-yddiync8BzAZ3r-ryFtEA:QUQ3MjNmd19xRi1WREZIYzNnVzY3V2JyanRrcXdvNU1DUGttSWFSRU9WandFYjFsRlRCaGd0NDFHN3VFa3poeWNEekJROFdtY2VidHV5d0N5UkhHQTgwYzM3ZXNqaGhYdVFxaDJJWVFKUFNBak1vZ1hDTkVUZm9FclNBWV9kOXoySHBqMlI5UTRMT2U0ZGM1M0hxSnNYOGVDQkZlZmZKZG5B; PREF=tz=America.Buenos_Aires&f5=30000&f7=140&gl=US&hl=en&f6=40000000; wide=1; YSC=6kvgAcaZs-Q; DEVICE_INFO=ChxOekU0TnpRM01ESTBORFkzTXpnNE9UY3lOZz09EJuM/J0GGJuM/J0G; VISITOR_INFO1_LIVE=Vw9baW2rDbA;';
 </script>
