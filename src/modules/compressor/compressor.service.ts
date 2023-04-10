@@ -38,7 +38,7 @@ export class CompressorService {
                 );
                 const progressPayload = {
                     progress: compressedMB,
-                    totalSize: totalSize
+                    totalSize: totalSize // Incluir el tamaño total del archivo en el objeto progreso
                 };
                 this.downloadGateway.downloadChannelProgress(
                     clientId,

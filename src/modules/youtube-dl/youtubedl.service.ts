@@ -68,14 +68,16 @@ export class YoutubeDlService {
         channelName: string,
         clientId: string
     ) {
+        let progressVideos = 0;
         const totalVideos = videoIds.length;
 
-        const downloadPromises = videoIds.map(async (videoId, index) => {
-            try {
-                const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        for (const videoId of videoIds) {
+            const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-                if (!existsSync(channelName))
+            try {
+                if (!existsSync(channelName)) {
                     await mkdir(channelName, { recursive: true });
+                }
 
                 await this.youtubeDl(videoUrl, {
                     output: `${channelName}/%(title)s_${videoId}.${FORMAT.MP4}`,
@@ -84,11 +86,14 @@ export class YoutubeDlService {
                     password: this.configService.get<string>(
                         CONFIG.YT_PASSWORD
                     ),
-                    addHeader: ['referer:youtube.com', 'user-agent:googlebot']
+                    addHeader: ['referer:youtube.com', 'user-agent:googlebot'],
+                    noPlaylist: true
                 });
 
+                progressVideos++;
+
                 this.downloadGateway.downloadVideosChannel(clientId, {
-                    progressVideos: index + 1,
+                    progressVideos,
                     totalVideos
                 });
 
@@ -96,8 +101,6 @@ export class YoutubeDlService {
             } catch (error) {
                 this.logger.error(`Error downloading video ${videoId}:`, error);
             }
-        });
-
-        await Promise.all(downloadPromises);
+        }
     }
 }
