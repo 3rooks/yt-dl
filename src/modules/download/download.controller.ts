@@ -4,7 +4,6 @@ import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { rm, unlink } from 'fs/promises';
 import { FORMAT } from 'src/constants/video-formats';
-import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import { Exception } from 'src/utils/error/exception-handler';
@@ -94,26 +93,12 @@ export class DownloadController {
             const allIdsChannel =
                 await this.googleService.getAllVideosFromChannel(channelId);
 
-            const videosToDownload: IVideoInfo[] = [];
-
-            for (const id of allIdsChannel) {
-                const videoInfo = await this.googleService.getVideoInfo(id);
-                if (!videoInfo) continue;
-                videosToDownload.push(videoInfo);
-            }
-
-            const outputFolder = await this.downloadService.downloadVideos(
-                videosToDownload,
-                this.mainFolder,
-                clientId
-            );
-
-            const archive = await this.compressorService.compressFolder(
-                outputFolder,
-                channelName,
-                this.mainFolder,
-                clientId
-            );
+            const { channelFolder, outputZip } =
+                await this.downloadService.downloadVideos(
+                    allIdsChannel,
+                    channelName,
+                    clientId
+                );
 
             const encodeFileName = encodeURIComponent(channelName);
 
@@ -122,11 +107,11 @@ export class DownloadController {
                 'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.ZIP}"`
             });
 
-            const fileStream = createReadStream(archive);
+            const fileStream = createReadStream(outputZip);
 
             fileStream.on('close', async () => {
-                await rm(outputFolder, { recursive: true, force: true });
-                await unlink(archive);
+                await rm(channelFolder, { recursive: true, force: true });
+                await unlink(outputZip);
             });
 
             return new StreamableFile(fileStream);

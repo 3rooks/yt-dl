@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { createWriteStream } from 'fs';
-import { writeFile } from 'fs/promises';
+import { createWriteStream, existsSync } from 'fs';
+import { mkdir, writeFile } from 'fs/promises';
 import * as miniget from 'miniget';
 import { Model } from 'mongoose';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
@@ -9,9 +9,12 @@ import { Downloads, IVideoInfo } from 'src/interfaces/downloads.interface';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { fileExists } from 'src/utils/file-exists';
+import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { outputAudioVideoFilePath } from 'src/utils/ytdl-paths';
 import { pipeline } from 'stream/promises';
+import { CompressorService } from '../compressor/compressor.service';
 import { FfmpegService } from '../ffmpeg/ffmpeg.service';
+import { YoutubeDlService } from '../youtube-dl/ytdlexec.service';
 import { YtdlService } from '../ytdl/ytdl.service';
 import { Download, DownloadDocument } from './schema/download.schema';
 
@@ -24,7 +27,9 @@ export class DownloadService {
         private readonly downloadModel: Model<DownloadDocument>,
         private readonly ffmpegService: FfmpegService,
         private readonly ytdlService: YtdlService,
-        private readonly downloadGateway: DownloadGateway
+        private readonly downloadGateway: DownloadGateway,
+        private readonly youtubeDlService: YoutubeDlService,
+        private readonly compressorService: CompressorService
     ) {}
 
     public async create(data: Download): Promise<DownloadDocument> {
@@ -99,45 +104,38 @@ export class DownloadService {
 
             return { outputPath, outputFile };
         } catch (error) {
-            console.log('DOWNLOADVIDEO',error);
+            console.log('DOWNLOADVIDEO', error);
             throw Exception.catch(error.message);
         }
     }
 
     public async downloadVideos(
-        videoInfos: IVideoInfo[],
-        outputFolder: string,
+        videoIds: string[],
+        channel: string,
         clientId: string
     ) {
         try {
-            let progressVideos = 0;
-            const totalVideos = videoInfos.length;
+            const channelFolder = `${OUTPUT_PATH}/${channel}`;
 
-            const videoPromises = videoInfos.map(async (videoInfo) => {
-                const { outputPath } = await this.downloadVideo(
-                    videoInfo,
-                    outputFolder,
-                    clientId
-                );
-                progressVideos++;
-                const progressPayload = {
-                    progressVideos,
-                    totalVideos
-                };
+            if (!existsSync(channelFolder))
+                await mkdir(channelFolder, { recursive: true });
 
-                this.downloadGateway.downloadVideosChannel(
-                    clientId,
-                    progressPayload
-                );
+            await this.youtubeDlService.downloadChannel(
+                videoIds,
+                channelFolder,
+                clientId
+            );
 
-                return outputPath;
-            });
+            const outputZip = await this.compressorService.compressFolder(
+                channelFolder,
+                channel,
+                OUTPUT_PATH,
+                clientId
+            );
 
-            const results = await Promise.all([...videoPromises]);
-
-            return results[0];
+            return { channelFolder, outputZip };
         } catch (error) {
-            console.log('VIDEOSSSS',error);
+            throw Exception.catch(error.message);
         }
     }
 
