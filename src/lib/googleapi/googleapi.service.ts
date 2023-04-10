@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
-import { DURATION_REGEX } from 'src/constants/regex.s';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { Exception } from 'src/utils/error/exception-handler';
@@ -67,36 +66,6 @@ export class GoogleapiService {
             });
 
             if (data.items[0].snippet.liveBroadcastContent !== 'none') return;
-
-            const videoInfo: IVideoInfo = {
-                videoId: data.items[0].id,
-                title: data.items[0].snippet.title,
-                channelId: data.items[0].snippet.channelId,
-                channelTitle: data.items[0].snippet.channelTitle,
-                description: data.items[0].snippet.description,
-                upload: data.items[0].snippet.publishedAt,
-                embed: `https://www.youtube.com/embed/${data.items[0].id}`,
-                videoUrl: `https://www.youtube.com/watch?v=${data.items[0].id}`
-            };
-
-            return videoInfo;
-        } catch (error) {
-            throw Exception.catch(error.message);
-        }
-    }
-
-    async getVideoInfoByTime(videoId: string): Promise<IVideoInfo> {
-        try {
-            const { data } = await this.youtube.videos.list({
-                part: 'snippet,contentDetails',
-                id: videoId
-            });
-
-            if (data.items[0].snippet.liveBroadcastContent !== 'none') return;
-
-            const duration = data.items[0].contentDetails.duration;
-            console.log('DURATION', duration, !duration.match(DURATION_REGEX));
-            if (!duration.match(DURATION_REGEX)) return;
 
             const videoInfo: IVideoInfo = {
                 videoId: data.items[0].id,

@@ -7,7 +7,6 @@ import {
     WebSocketServer
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { DownloadProgress } from 'src/interfaces/download-progress.interface';
 import { MergeProgress } from 'src/interfaces/merge-progress.interface';
 
 @WebSocketGateway()
@@ -42,7 +41,7 @@ export class DownloadGateway
         if (client) client.emit('mergeFinished', status);
     }
 
-    downloadProgress(clientId: string, payload: DownloadProgress) {
+    downloadProgress(clientId: string, payload: string) {
         const client = this.clients[clientId];
         if (client) client.emit('downloadProgress', payload);
     }

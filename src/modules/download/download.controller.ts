@@ -3,13 +3,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { rm, unlink } from 'fs/promises';
+import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { isValidYoutubeUrl } from 'src/utils/get-video-id';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
-import { CompressorService } from '../compressor/compressor.service';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
@@ -21,8 +21,7 @@ export class DownloadController {
 
     constructor(
         private readonly downloadService: DownloadService,
-        private readonly googleService: GoogleapiService,
-        private readonly compressorService: CompressorService
+        private readonly googleService: GoogleapiService
     ) {}
 
     @Post('video')
@@ -47,10 +46,10 @@ export class DownloadController {
                     status: 'BAD_REQUEST'
                 });
 
-            const { outputPath, outputFile } =
+            const { outputFile, outputFolder } =
                 await this.downloadService.downloadVideo(
+                    videoId,
                     videoInfo,
-                    this.mainFolder,
                     clientId
                 );
 
@@ -65,7 +64,7 @@ export class DownloadController {
             const fileStream = createReadStream(outputFile);
 
             fileStream.on('close', async () => {
-                await rm(outputPath, { recursive: true, force: true });
+                await rm(outputFolder, { recursive: true, force: true });
             });
 
             return new StreamableFile(fileStream);
@@ -118,5 +117,37 @@ export class DownloadController {
         } catch (error) {
             throw Exception.catch(error.message);
         }
+    }
+
+    @Post('image')
+    async downloadImage(
+        @Body() { clientId, channelUrl }: DownloadChannelDto,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        const { channelId } = await getChannelIdVideoId(channelUrl);
+        const channelInfo = await this.googleService.getChannelInfo(channelId);
+
+        const name = `${channelId}.${FORMAT.JPG}`;
+        const dest = join(this.mainFolder, name);
+
+        const output = await this.downloadService.downloadImage(
+            channelInfo.thumbnails.high.url,
+            dest
+        );
+
+        const encodeFileName = encodeURIComponent(channelId);
+
+        res.set({
+            'Content-Type': 'image/jpeg',
+            'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.JPG}"`
+        });
+
+        const fileStream = createReadStream(dest);
+
+        fileStream.on('close', async () => {
+            await unlink(output);
+        });
+
+        return new StreamableFile(fileStream);
     }
 }

@@ -1,16 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { createWriteStream, existsSync } from 'fs';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir } from 'fs/promises';
 import * as miniget from 'miniget';
 import { Model } from 'mongoose';
-import { IChannelInfo } from 'src/interfaces/channel-info.interface';
+import { FORMAT } from 'src/constants/video-formats';
 import { Downloads, IVideoInfo } from 'src/interfaces/downloads.interface';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
-import { fileExists } from 'src/utils/file-exists';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
-import { outputAudioVideoFilePath } from 'src/utils/ytdl-paths';
 import { pipeline } from 'stream/promises';
 import { CompressorService } from '../compressor/compressor.service';
 import { FfmpegService } from '../ffmpeg/ffmpeg.service';
@@ -66,45 +64,25 @@ export class DownloadService {
     }
 
     public async downloadVideo(
+        videoId: string,
         videoInfo: IVideoInfo,
-        outputFolder: string,
         clientId: string
-    ): Promise<{
-        outputPath: string;
-        outputFile: string;
-    }> {
+    ) {
         try {
-            const { videoId } = videoInfo;
+            const { channelTitle, channelId, title } = videoInfo;
 
-            const { outputPath, outputAudio, outputVideo, outputFile } =
-                await outputAudioVideoFilePath(videoInfo, outputFolder);
+            const fileName = `${title}_${videoId}.${FORMAT.MP4}`;
+            const channelName = `${channelTitle}_${channelId}`;
 
-            if (await fileExists(outputFile)) return { outputPath, outputFile };
-
-            const { bestAudio, bestVideo } =
-                await this.ytdlService.getBestQualityAudioVideo(videoId);
-
-            await this.ytdlService.downloadAudioVideo(
+            const file = await this.youtubeDlService.downloadVideo(
                 videoId,
-                bestAudio,
-                bestVideo,
-                outputAudio,
-                outputVideo,
+                fileName,
+                channelName,
                 clientId
             );
 
-            await this.ffmpegService.mergeAudioVideo(
-                outputAudio,
-                outputVideo,
-                outputFile,
-                clientId
-            );
-
-            this.logger.log(`Downloaded => ${videoInfo.title}`);
-
-            return { outputPath, outputFile };
+            return file;
         } catch (error) {
-            console.log('DOWNLOADVIDEO', error);
             throw Exception.catch(error.message);
         }
     }
@@ -139,27 +117,11 @@ export class DownloadService {
         }
     }
 
-    public async downloadTextAndImage(
-        imgUrl: string,
-        outputImg: string,
-        channelInfo: IChannelInfo,
-        outputText: string
-    ): Promise<void> {
-        await this.downloadImage(imgUrl, outputImg);
-        await this.downloadText(channelInfo, outputText);
-    }
-
-    private async downloadImage(imgUrl: string, dest: string): Promise<void> {
+    public async downloadImage(imgUrl: string, dest: string) {
         const url = imgUrl.replace(/=s\d+/, '=s1080');
         const img = await miniget(url);
         const out = createWriteStream(dest);
         await pipeline([img, out]);
-    }
-
-    private async downloadText(
-        data: IChannelInfo,
-        output: string
-    ): Promise<void> {
-        await writeFile(output, JSON.stringify(data, null, 4), 'utf-8');
+        return dest;
     }
 }

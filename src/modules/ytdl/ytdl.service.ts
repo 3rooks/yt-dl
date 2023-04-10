@@ -4,7 +4,6 @@ import { createWriteStream } from 'fs';
 import { unlink } from 'fs/promises';
 import { CONFIG } from 'src/constants/config';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
-import { emitDownloadProgress } from 'src/utils/dl-fn/dl-progress.fn';
 import {
     getBestAudioFormat,
     getBestVideoFormat
@@ -70,15 +69,6 @@ export class YtdlService {
                 quality: bestVideo.itag,
                 requestOptions
             });
-
-            emitDownloadProgress(
-                clientId,
-                bestAudio,
-                bestVideo,
-                audioReadable,
-                videoReadable,
-                this.downloadGateway
-            );
 
             await Promise.all([
                 pipeline([audioReadable, audioWriteable]),
