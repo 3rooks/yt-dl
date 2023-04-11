@@ -54,3 +54,15 @@ export const outputAudioVideoFilePath = async (
         throw Exception.catch(error.message);
     }
 };
+
+export const paths = (videoInfo: IVideoInfo, output: string) => {
+    const { channelTitle, channelId, title, videoId } = videoInfo;
+
+    const videoName = `${title}_${videoId}`;
+    const folderName = `${channelTitle}_${channelId}`;
+
+    const folderPath = join(output, folderName);
+    const filePath = join(folderPath, videoName);
+
+    return { videoName, folderName, filePath, folderPath };
+};

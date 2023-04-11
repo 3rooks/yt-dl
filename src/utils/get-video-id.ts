@@ -41,7 +41,7 @@ https://www.youtube.com/shorts/dQw4w9WgXcQ: dQw4w9WgXcQ
 
 export const isValidYoutubeUrl = (url: string): boolean => {
     const regex =
-        /^https?:\/\/(youtu\.be\/|(www\.)?youtube\.com\/(embed|v|shorts|channel|@))/;
+        /^https?:\/\/(youtu\.be\/|(www\.)?youtube\.com\/(embed|v|shorts|channel|@|watch\?v=))/;
     return regex.test(url);
 };
 

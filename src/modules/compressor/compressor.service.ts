@@ -3,10 +3,10 @@ import { Archiver, EntryData } from 'archiver';
 import { createWriteStream } from 'fs';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
-import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
+import uuid from 'uuid-random';
 
 @Injectable()
 export class CompressorService {
@@ -17,15 +17,11 @@ export class CompressorService {
         private readonly downloadGateway: DownloadGateway
     ) {}
 
-    public async compressFolder(
-        channelInfo: IChannelInfo,
-        folderTo: string,
-        clientId: string
-    ) {
+    public async compressFolder(folderTo: string, clientId: string) {
         try {
             const archive = this.createArchiver();
 
-            const { outputStream, outputFilePath } = this.paths(channelInfo);
+            const { outputStream, outputFilePath } = this.paths();
 
             archive.pipe(outputStream);
             archive.directory(folderTo, false);
@@ -40,9 +36,8 @@ export class CompressorService {
         }
     }
 
-    private paths(channelInfo: IChannelInfo) {
-        const nameTemplate = `${channelInfo.name}_${channelInfo.channelId}`;
-        const fileTemplate = `${nameTemplate}.${FORMAT.ZIP}`;
+    private paths() {
+        const fileTemplate = `${uuid()}.${FORMAT.ZIP}`;
         const outputFilePath = join(this.folder, fileTemplate);
         const outputStream = createWriteStream(outputFilePath);
 

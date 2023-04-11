@@ -3,6 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { rm, unlink } from 'fs/promises';
+import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
@@ -12,18 +13,15 @@ import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
-import { YoutubeDlService } from '../youtube-dl/youtubedl.service';
-import { join } from 'path';
 
 @ApiTags('Download')
 @Controller('download')
 export class DownloadController {
-    private readonly mainFolder = OUTPUT_PATH;
+    private readonly folder = OUTPUT_PATH;
 
     constructor(
         private readonly downloadService: DownloadService,
-        private readonly googleService: GoogleapiService,
-        private readonly youtubeDl: YoutubeDlService
+        private readonly googleService: GoogleapiService
     ) {}
 
     @Post('video')
@@ -39,7 +37,6 @@ export class DownloadController {
                 });
 
             const { videoId } = await getChannelIdVideoId(videoUrl);
-
             const videoInfo = await this.googleService.getVideoInfo(videoId);
 
             if (!videoInfo)
@@ -48,15 +45,15 @@ export class DownloadController {
                     status: 'BAD_REQUEST'
                 });
 
-            const { filePath, folderPath } =
+            const { videoName, filePath, folderPath } =
                 await this.downloadService.downloadVideo(
                     videoId,
                     videoInfo,
+                    this.folder,
                     clientId
                 );
 
-            const name = `${videoInfo.title}_${videoInfo.videoId}`;
-            const encodeFileName = encodeURIComponent(name);
+            const encodeFileName = encodeURIComponent(videoName);
 
             res.set({
                 'Content-Type': 'video/mp4',
@@ -92,30 +89,20 @@ export class DownloadController {
                 channelId
             );
 
-               await this.youtubeDl.dlChannel(channelInfo.channel_url)
+            const folderName = `${channelInfo.name}_${channelInfo.channelId}`;
+            const outFolder = join(this.folder, folderName);
 
+            const videoIds = await this.googleService.getAllVideosFromChannel(
+                channelId
+            );
 
-            // const videoIds = await this.googleService.getAllVideosFromChannel(
-            //     channelId
-            // );
-
-            // const outFolder = await this.downloadService.downloadChannel(
-            //     videoIds,
-            //     this.googleService,
-            //     clientId
-            // );
-
-            const outFolder = join(this.mainFolder, `${channelInfo.name}_${channelId}`)
-
-            const outZip = await this.downloadService.compression(
-                channelInfo,
+            const outZip = await this.downloadService.downloadChannel(
+                videoIds,
                 outFolder,
                 clientId
             );
 
-            const encodeFileName = encodeURIComponent(
-                `${channelInfo.name}_${channelId}`
-            );
+            const encodeFileName = encodeURIComponent(folderName);
 
             res.set({
                 'Content-Type': 'application/zip',
@@ -131,7 +118,6 @@ export class DownloadController {
 
             return new StreamableFile(fileStream);
         } catch (error) {
-            console.log(error.message + error.stack);
             throw Exception.catch(error.message);
         }
     }

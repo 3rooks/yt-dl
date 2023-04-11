@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ExecaChildProcess } from 'execa';
 import { existsSync } from 'fs';
@@ -10,14 +10,21 @@ import { FORMAT } from 'src/constants/video-formats';
 import { IDownloadVideo } from 'src/interfaces/download-video.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
+import { chunkArray } from 'src/utils/chunk-arr';
 import { Exception } from 'src/utils/error/exception-handler';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { exec } from 'youtube-dl-exec';
 
+const { YT_EMAIL, YT_PASSWORD } = CONFIG;
+
 @Injectable()
 export class YoutubeDlService {
+    private readonly logger = new Logger();
     private readonly folder = OUTPUT_PATH;
     private readonly format = 'best';
+    private readonly username = this.configService.get<string>(YT_EMAIL);
+    private readonly password = this.configService.get<string>(YT_PASSWORD);
+    private readonly template = `%(uploader)s_%(channel_id)s/%(title)s_%(id)s.%(ext)s`;
 
     constructor(
         @Inject('YTDLEXEC') private readonly youtubeDl: typeof exec,
@@ -27,40 +34,26 @@ export class YoutubeDlService {
 
     public async downloadVideo(
         videoId: string,
-        videoInfo: IVideoInfo,
+        output: string,
         clientId: string
-    ): Promise<IDownloadVideo> {
+    ): Promise<void> {
         try {
-            const { filePath, folderPath } = await this.paths(videoInfo);
-
             const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
             const youtubeDl = this.youtubeDl(videoUrl, {
-                output: filePath,
+                output: `${output}/${this.template}`,
                 format: this.format,
-                username: this.configService.get<string>(CONFIG.YT_EMAIL),
-                password: this.configService.get<string>(CONFIG.YT_PASSWORD),
+                username: this.username,
+                password: this.password,
                 addHeader: ['referer:youtube.com', 'user-agent:googlebot']
             });
 
             this.progress(clientId, youtubeDl);
 
             await youtubeDl;
-
-            return { filePath, folderPath };
         } catch (error) {
             throw Exception.catch(error.message);
         }
-    }
-
-    public async dlChannel(channelUrl: string) {
-        await this.youtubeDl(channelUrl, {
-            output: `${this.folder}/%(uploader)s_%(channel_id)s/%(title)s_%(id)s.mp4`,
-            format: this.format,
-            username: this.configService.get<string>(CONFIG.YT_EMAIL),
-            password: this.configService.get<string>(CONFIG.YT_PASSWORD),
-            addHeader: ['referer:youtube.com', 'user-agent:googlebot']
-        });
     }
 
     private async paths(videoInfo: IVideoInfo): Promise<IDownloadVideo> {
@@ -90,5 +83,47 @@ export class YoutubeDlService {
         youtubeDl.on('exit', () => {
             this.downloadGateway.downloadFinished(clientId);
         });
+    }
+
+    async downloadChannel(videoIds: string[], clientId: string): Promise<void> {
+        try {
+            const chunks = chunkArray(videoIds, 5);
+            const totalVideos = videoIds.length;
+            let progressVideos = 0;
+
+            for (const chunk of chunks) {
+                const downloadPromises = chunk.map(async (videoId: string) => {
+                    try {
+                        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+                        await this.youtubeDl(videoUrl, {
+                            output: `${this.folder}/${this.template}`,
+                            format: this.format,
+                            username: this.username,
+                            password: this.password,
+                            addHeader: [
+                                'referer:youtube.com',
+                                'user-agent:googlebot'
+                            ]
+                        });
+
+                        progressVideos++;
+
+                        this.downloadGateway.downloadVideosChannel(clientId, {
+                            progressVideos,
+                            totalVideos
+                        });
+
+                        this.logger.log(`Downloaded: ${videoId}`);
+                    } catch (error) {
+                        this.logger.error(`Error: ${videoId}-${error.message}`);
+                    }
+                });
+
+                await Promise.all([...downloadPromises]);
+            }
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
     }
 }

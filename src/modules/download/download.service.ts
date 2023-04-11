@@ -1,12 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { createWriteStream } from 'fs';
 import miniget from 'miniget';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
-import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
-import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { pipeline } from 'stream/promises';
@@ -15,11 +13,9 @@ import { YoutubeDlService } from '../youtube-dl/youtubedl.service';
 
 @Injectable()
 export class DownloadService {
-    private readonly logger = new Logger();
     private readonly folder = OUTPUT_PATH;
 
     constructor(
-        private readonly downloadGateway: DownloadGateway,
         private readonly youtubeDlService: YoutubeDlService,
         private readonly compressorService: CompressorService
     ) {}
@@ -27,54 +23,47 @@ export class DownloadService {
     public async downloadVideo(
         videoId: string,
         videoInfo: IVideoInfo,
+        output: string,
         clientId: string
     ) {
         try {
-            const outputs = await this.youtubeDlService.downloadVideo(
+            const paths = this.paths(videoInfo, output);
+
+            await this.youtubeDlService.downloadVideo(
                 videoId,
-                videoInfo,
+                output,
                 clientId
             );
 
-            this.logger.log(`Downloaded: ${videoId}`);
-
-            return outputs;
+            return paths;
         } catch (error) {
             throw Exception.catch(error.message);
         }
     }
 
+    private paths = (videoInfo: IVideoInfo, output: string) => {
+        const { channelTitle, channelId, title, videoId } = videoInfo;
+
+        const videoName = `${title}_${videoId}`;
+        const folderName = `${channelTitle}_${channelId}`;
+
+        const folderPath = join(output, folderName);
+        const filePath = join(folderPath, videoName);
+
+        return { videoName, folderName, filePath, folderPath };
+    };
+
     public async downloadChannel(
         videoIds: string[],
-        googleService: GoogleapiService,
+        folderTo: string,
         clientId: string
     ) {
         try {
-            const totalVideos = videoIds.length;
-            let channelFolder = '';
-            let progress = 0;
-
-            for (const videoId of videoIds) {
-                const videoInfo = await googleService.getVideoInfo(videoId);
-
-                if (!videoInfo) continue;
-
-                progress++;
-                const { folderPath } = await this.downloadVideo(
-                    videoId,
-                    videoInfo,
-                    clientId
-                );
-
-                this.downloadGateway.downloadVideosChannel(clientId, {
-                    progressVideos: progress,
-                    totalVideos
-                });
-
-                channelFolder = folderPath;
-            }
-
-            return channelFolder;
+            await this.youtubeDlService.downloadChannel(videoIds, clientId);
+            return await this.compressorService.compressFolder(
+                folderTo,
+                clientId
+            );
         } catch (error) {
             throw Exception.catch(error.message);
         }
@@ -94,17 +83,5 @@ export class DownloadService {
         await pipeline([imgStream, outStream]);
 
         return outputPath;
-    }
-
-    public async compression(
-        channelInfo: IChannelInfo,
-        folder: string,
-        clientId: string
-    ) {
-        return await this.compressorService.compressFolder(
-            channelInfo,
-            folder,
-            clientId
-        );
     }
 }
