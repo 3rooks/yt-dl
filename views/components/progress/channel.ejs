@@ -10,7 +10,7 @@
         <h2 class="text-lg font-semibold mb-2">
             Compressing channel videos...
         </h2>
-        <p class="text-gray-500 text-xs mt-2" id="progress-compression">0 MB</p>
+        <progress id="compress-progress" value="0" max="100"></progress>
     </div>
 </div>
 
@@ -18,9 +18,7 @@
     const downloadContainer = document.getElementById('channel-container');
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
-    const progressTextProgress = document.getElementById(
-        'progress-compression'
-    );
+    const compressProgress = document.getElementById('compress-progress');
 
     socket.on('downloadedVideos', (data) => {
         progressBar.value = data.progressVideos;
@@ -32,8 +30,7 @@
     });
 
     socket.on('downloadChannelProgress', (data) => {
-        console.log(data);
-        progressTextProgress.innerText = `${data} MB`;
+        compressProgress.value = data;
     });
 
     socket.on('downloadChannelFinished', () => {

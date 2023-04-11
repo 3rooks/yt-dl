@@ -7,6 +7,7 @@ import { join } from 'path';
 import { CONFIG } from 'src/constants/config';
 import { DOWNLOAD_PROGRESS } from 'src/constants/regex.s';
 import { FORMAT } from 'src/constants/video-formats';
+import { IDownloadVideo } from 'src/interfaces/download-video.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
@@ -28,7 +29,7 @@ export class YoutubeDlService {
         videoId: string,
         videoInfo: IVideoInfo,
         clientId: string
-    ) {
+    ): Promise<IDownloadVideo> {
         try {
             const { filePath, folderPath } = await this.paths(videoInfo);
 
@@ -52,7 +53,17 @@ export class YoutubeDlService {
         }
     }
 
-    private async paths(videoInfo: IVideoInfo) {
+    public async dlChannel(channelUrl: string) {
+        await this.youtubeDl(channelUrl, {
+            output: `${this.folder}/%(uploader)s_%(channel_id)s/%(title)s_%(id)s.mp4`,
+            format: this.format,
+            username: this.configService.get<string>(CONFIG.YT_EMAIL),
+            password: this.configService.get<string>(CONFIG.YT_PASSWORD),
+            addHeader: ['referer:youtube.com', 'user-agent:googlebot']
+        });
+    }
+
+    private async paths(videoInfo: IVideoInfo): Promise<IDownloadVideo> {
         const { channelTitle, channelId, title, videoId } = videoInfo;
 
         const channelTemplate = `${channelTitle}_${channelId}`;
@@ -68,7 +79,7 @@ export class YoutubeDlService {
         return { filePath, folderPath };
     }
 
-    private progress(clientId: string, youtubeDl: ExecaChildProcess) {
+    private progress(clientId: string, youtubeDl: ExecaChildProcess): void {
         youtubeDl.stdout.on('data', (data: Buffer) => {
             const strData = data.toString();
             const downloadMatch = strData.match(DOWNLOAD_PROGRESS);

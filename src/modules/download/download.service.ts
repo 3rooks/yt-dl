@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createWriteStream, existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
+import { createWriteStream } from 'fs';
 import miniget from 'miniget';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
+import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
@@ -21,8 +21,7 @@ export class DownloadService {
     constructor(
         private readonly downloadGateway: DownloadGateway,
         private readonly youtubeDlService: YoutubeDlService,
-        private readonly compressorService: CompressorService,
-        private readonly googleService: GoogleapiService
+        private readonly compressorService: CompressorService
     ) {}
 
     public async downloadVideo(
@@ -31,74 +30,81 @@ export class DownloadService {
         clientId: string
     ) {
         try {
-            const { channelTitle, channelId, title } = videoInfo;
-
-            const fileName = `${title}_${videoId}.${FORMAT.MP4}`;
-            const channelName = `${channelTitle}_${channelId}`;
-
-            const file = await this.youtubeDlService.downloadVideo(
+            const outputs = await this.youtubeDlService.downloadVideo(
                 videoId,
-                fileName,
-                channelName,
+                videoInfo,
                 clientId
             );
 
-            return file;
+            this.logger.log(`Downloaded: ${videoId}`);
+
+            return outputs;
         } catch (error) {
             throw Exception.catch(error.message);
         }
-    }
-
-    async paths(videoInfo: IVideoInfo) {
-        const { channelTitle, channelId, title, videoId } = videoInfo;
-
-        const channelTemplate = `${channelTitle}_${channelId}`;
-        const fileTemplate = `${title}_${videoId}.${FORMAT.MP4}`;
-
-        const folderPath = join(this.folder, channelTemplate);
-
-        if (!existsSync(folderPath))
-            await mkdir(folderPath, { recursive: true });
-
-        const filePath = join(folderPath, fileTemplate);
-
-        return { filePath, folderPath };
     }
 
     public async downloadChannel(
         videoIds: string[],
-        channelName: string,
+        googleService: GoogleapiService,
         clientId: string
     ) {
         try {
-            const channelFolder = `${this.folder}/${channelName}`;
+            const totalVideos = videoIds.length;
+            let channelFolder = '';
+            let progress = 0;
 
             for (const videoId of videoIds) {
-                await this.downloadVideo(
+                const videoInfo = await googleService.getVideoInfo(videoId);
+
+                if (!videoInfo) continue;
+
+                progress++;
+                const { folderPath } = await this.downloadVideo(
                     videoId,
-                    await this.googleService.getVideoInfo(videoId),
+                    videoInfo,
                     clientId
                 );
+
+                this.downloadGateway.downloadVideosChannel(clientId, {
+                    progressVideos: progress,
+                    totalVideos
+                });
+
+                channelFolder = folderPath;
             }
 
-            const outputZip = await this.compressorService.compressFolder(
-                channelFolder,
-                channelName,
-                OUTPUT_PATH,
-                clientId
-            );
-
-            return { channelFolder, outputZip };
+            return channelFolder;
         } catch (error) {
             throw Exception.catch(error.message);
         }
     }
 
-    public async downloadImage(imgUrl: string, dest: string) {
-        const url = imgUrl.replace(/=s\d+/, '=s1080');
-        const img = await miniget(url);
-        const out = createWriteStream(dest);
-        await pipeline([img, out]);
-        return dest;
+    public async downloadImage(channelInfo: IChannelInfo) {
+        const { channelId, thumbnails } = channelInfo;
+
+        const imgUrl = thumbnails.high.url.replace(/=s\d+/, '=s1080');
+        const imgStream = await miniget(imgUrl);
+
+        const imgTemplate = `${channelId}.${FORMAT.JPG}`;
+        const outputPath = join(this.folder, imgTemplate);
+
+        const outStream = createWriteStream(outputPath);
+
+        await pipeline([imgStream, outStream]);
+
+        return outputPath;
+    }
+
+    public async compression(
+        channelInfo: IChannelInfo,
+        folder: string,
+        clientId: string
+    ) {
+        return await this.compressorService.compressFolder(
+            channelInfo,
+            folder,
+            clientId
+        );
     }
 }

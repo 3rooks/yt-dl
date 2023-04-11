@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import archiver from 'archiver';
+import archiver, { Archiver } from 'archiver';
 import { DownloadGatewayModule } from 'src/lib/websocket/download-gateway.module';
 import { CompressorService } from './compressor.service';
 @Module({
@@ -8,14 +8,13 @@ import { CompressorService } from './compressor.service';
         CompressorService,
         {
             provide: 'COMPRESSOR',
-            useFactory: () => {
-                const archive = archiver('zip', {
+            useFactory: () => (): Archiver => {
+                return archiver('zip', {
                     store: true,
                     zlib: {
                         level: 9
                     }
                 });
-                return archive;
             }
         }
     ],

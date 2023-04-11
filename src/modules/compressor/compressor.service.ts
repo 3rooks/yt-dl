@@ -1,63 +1,73 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Archiver, EntryData } from 'archiver';
-import { createWriteStream, statSync } from 'fs';
+import { createWriteStream } from 'fs';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
+import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
+import { OUTPUT_PATH } from 'src/utils/paths.resource';
 
 @Injectable()
 export class CompressorService {
+    private readonly folder = OUTPUT_PATH;
+
     constructor(
-        @Inject('COMPRESSOR') private readonly archive: Archiver,
+        @Inject('COMPRESSOR') private readonly createArchiver: () => Archiver,
         private readonly downloadGateway: DownloadGateway
     ) {}
 
-    async compressFolder(
-        folderPath: string,
-        channelName: string,
-        outputFile: string,
+    public async compressFolder(
+        channelInfo: IChannelInfo,
+        folderTo: string,
         clientId: string
     ) {
         try {
-            const fileName = `${channelName}.${FORMAT.ZIP}`;
+            const archive = this.createArchiver();
 
-            const outputZipFile = join(outputFile, fileName);
-            const outputStream = createWriteStream(outputZipFile);
+            const { outputStream, outputFilePath } = this.paths(channelInfo);
 
-            this.archive.pipe(outputStream);
-            this.archive.directory(folderPath, false);
+            archive.pipe(outputStream);
+            archive.directory(folderTo, false);
 
-            let totalSize = Math.round(
-                statSync(folderPath).size / (1024 * 1024)
-            );
-            let processedBytes = 0;
+            this.progress(clientId, archive);
 
-            this.archive.on('data', (data: Buffer) => {
-                processedBytes += data.length;
-                const progress = Math.round(processedBytes / (1024 * 1024));
-                this.downloadGateway.downloadChannelProgress(
-                    clientId,
-                    progress
-                );
-            });
+            await archive.finalize();
 
-            this.archive.on('finish', () => {
-                this.downloadGateway.downloadChannelFinished(
-                    clientId,
-                    'Finished'
-                );
-            });
-
-            await this.archive.finalize();
-
-            return outputZipFile;
+            return outputFilePath;
         } catch (error) {
             throw Exception.catch(error.message);
         }
     }
-}
-interface ExtendedEntryData extends EntryData {
-    progressTotal?: number;
-    progressAmount?: number;
+
+    private paths(channelInfo: IChannelInfo) {
+        const nameTemplate = `${channelInfo.name}_${channelInfo.channelId}`;
+        const fileTemplate = `${nameTemplate}.${FORMAT.ZIP}`;
+        const outputFilePath = join(this.folder, fileTemplate);
+        const outputStream = createWriteStream(outputFilePath);
+
+        return {
+            outputStream,
+            outputFilePath
+        };
+    }
+
+    private progress(clientId: string, archive: Archiver) {
+        let processedBytes = 0;
+        let totalBytes = 0;
+
+        archive.on('entry', (entry: EntryData) => {
+            totalBytes += entry.stats.size;
+        });
+
+        archive.on('data', (data: Buffer) => {
+            processedBytes += data.length;
+            const progress = Math.round((processedBytes / totalBytes) * 100);
+            this.downloadGateway.downloadChannelProgress(clientId, progress);
+        });
+
+        archive.on('finish', () => {
+            this.downloadGateway.downloadChannelFinished(clientId);
+        });
+    }
 }

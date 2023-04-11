@@ -3,7 +3,6 @@ import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { rm, unlink } from 'fs/promises';
-import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
@@ -13,6 +12,8 @@ import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
+import { YoutubeDlService } from '../youtube-dl/youtubedl.service';
+import { join } from 'path';
 
 @ApiTags('Download')
 @Controller('download')
@@ -21,14 +22,15 @@ export class DownloadController {
 
     constructor(
         private readonly downloadService: DownloadService,
-        private readonly googleService: GoogleapiService
+        private readonly googleService: GoogleapiService,
+        private readonly youtubeDl: YoutubeDlService
     ) {}
 
     @Post('video')
     async downloadVideo(
         @Body() { clientId, videoUrl }: DownloadVideoDto,
         @Res({ passthrough: true }) res: Response
-    ) {
+    ): Promise<StreamableFile> {
         try {
             if (!isValidYoutubeUrl(videoUrl))
                 throw new Exception({
@@ -46,7 +48,7 @@ export class DownloadController {
                     status: 'BAD_REQUEST'
                 });
 
-            const { outputFile, outputFolder } =
+            const { filePath, folderPath } =
                 await this.downloadService.downloadVideo(
                     videoId,
                     videoInfo,
@@ -61,10 +63,10 @@ export class DownloadController {
                 'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.MP4}"`
             });
 
-            const fileStream = createReadStream(outputFile);
+            const fileStream = createReadStream(filePath);
 
             fileStream.on('close', async () => {
-                await rm(outputFolder, { recursive: true, force: true });
+                await rm(folderPath, { recursive: true, force: true });
             });
 
             return new StreamableFile(fileStream);
@@ -86,31 +88,45 @@ export class DownloadController {
                 });
 
             const { channelId } = await getChannelIdVideoId(channelUrl);
-            const { name } = await this.googleService.getChannelInfo(channelId);
-            const channelName = `${name}_${channelId}`;
+            const channelInfo = await this.googleService.getChannelInfo(
+                channelId
+            );
 
-            const allVideosChannel =
-                await this.googleService.getAllVideosFromChannel(channelId);
+               await this.youtubeDl.dlChannel(channelInfo.channel_url)
 
-            const { channelFolder, outputZip } =
-                await this.downloadService.downloadChannel(
-                    allVideosChannel,
-                    channelName,
-                    clientId
-                );
 
-            const encodeFileName = encodeURIComponent(channelName);
+            // const videoIds = await this.googleService.getAllVideosFromChannel(
+            //     channelId
+            // );
+
+            // const outFolder = await this.downloadService.downloadChannel(
+            //     videoIds,
+            //     this.googleService,
+            //     clientId
+            // );
+
+            const outFolder = join(this.mainFolder, `${channelInfo.name}_${channelId}`)
+
+            const outZip = await this.downloadService.compression(
+                channelInfo,
+                outFolder,
+                clientId
+            );
+
+            const encodeFileName = encodeURIComponent(
+                `${channelInfo.name}_${channelId}`
+            );
 
             res.set({
                 'Content-Type': 'application/zip',
                 'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.ZIP}"`
             });
 
-            const fileStream = createReadStream(outputZip);
+            const fileStream = createReadStream(outZip);
 
             fileStream.on('close', async () => {
-                await rm(channelFolder, { recursive: true, force: true });
-                await unlink(outputZip);
+                await rm(outFolder, { recursive: true, force: true });
+                await unlink(outZip);
             });
 
             return new StreamableFile(fileStream);
@@ -122,19 +138,13 @@ export class DownloadController {
 
     @Post('image')
     async downloadImage(
-        @Body() { clientId, channelUrl }: DownloadChannelDto,
+        @Body() { channelUrl }: DownloadChannelDto,
         @Res({ passthrough: true }) res: Response
-    ) {
+    ): Promise<StreamableFile> {
         const { channelId } = await getChannelIdVideoId(channelUrl);
         const channelInfo = await this.googleService.getChannelInfo(channelId);
 
-        const name = `${channelId}.${FORMAT.JPG}`;
-        const dest = join(this.mainFolder, name);
-
-        const output = await this.downloadService.downloadImage(
-            channelInfo.thumbnails.high.url,
-            dest
-        );
+        const output = await this.downloadService.downloadImage(channelInfo);
 
         const encodeFileName = encodeURIComponent(channelId);
 
@@ -143,7 +153,7 @@ export class DownloadController {
             'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.JPG}"`
         });
 
-        const fileStream = createReadStream(dest);
+        const fileStream = createReadStream(output);
 
         fileStream.on('close', async () => {
             await unlink(output);
