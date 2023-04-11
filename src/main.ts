@@ -30,9 +30,9 @@ const bootstrap = async () => {
 
     swaggerConfig(app);
 
-    await app.listen(AppModule.port);
-    // ClusterService.clusterize(async () => {
-    // });
+    ClusterService.clusterize(async () => {
+        await app.listen(AppModule.port);
+    });
 };
 
 bootstrap();
