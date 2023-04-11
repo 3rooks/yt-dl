@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { Downloads } from 'src/interfaces/downloads.interface';
-import * as uuid from 'uuid-random';
+import uuid from 'uuid-random';
 
 export type DownloadDocument = HydratedDocument<Download>;
 

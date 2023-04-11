@@ -6,7 +6,9 @@ import { join } from 'path';
 import { CONFIG } from 'src/constants/config';
 import { DOWNLOAD_PROGRESS } from 'src/constants/regex.s';
 import { FORMAT } from 'src/constants/video-formats';
+import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
+import { chunkArray } from 'src/utils/chunk-arr';
 import { Exception } from 'src/utils/error/exception-handler';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { exec } from 'youtube-dl-exec';
@@ -68,39 +70,60 @@ export class YoutubeDlService {
         channelName: string,
         clientId: string
     ) {
-        let progressVideos = 0;
-        const totalVideos = videoIds.length;
+        try {
+            const batches = chunkArray(videoIds, 5);
 
-        for (const videoId of videoIds) {
-            const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            let progressVideos = 0;
+            const totalVideos = videoIds.length;
 
-            try {
-                if (!existsSync(channelName)) {
-                    await mkdir(channelName, { recursive: true });
-                }
+            for (const batch of batches) {
+                const downloadPromises = batch.map(async (videoId: string) => {
+                    try {
+                        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-                await this.youtubeDl(videoUrl, {
-                    output: `${channelName}/%(title)s_${videoId}.${FORMAT.MP4}`,
-                    format: 'best',
-                    username: this.configService.get<string>(CONFIG.YT_EMAIL),
-                    password: this.configService.get<string>(
-                        CONFIG.YT_PASSWORD
-                    ),
-                    addHeader: ['referer:youtube.com', 'user-agent:googlebot'],
-                    noPlaylist: true
+                        if (!existsSync(channelName)) {
+                            await mkdir(channelName, { recursive: true });
+                        }
+
+                        await this.youtubeDl(videoUrl, {
+                            output: `${channelName}/%(title)s_${videoId}.${FORMAT.MP4}`,
+                            format: 'best',
+                            username: this.configService.get<string>(
+                                CONFIG.YT_EMAIL
+                            ),
+                            password: this.configService.get<string>(
+                                CONFIG.YT_PASSWORD
+                            ),
+                            addHeader: [
+                                'referer:youtube.com',
+                                'user-agent:googlebot'
+                            ],
+                            noPlaylist: true
+                        });
+
+                        progressVideos++;
+
+                        this.downloadGateway.downloadVideosChannel(clientId, {
+                            progressVideos,
+                            totalVideos
+                        });
+
+                        this.logger.log(
+                            `Video ${videoId} downloaded successfully`
+                        );
+                    } catch (error) {
+                        this.logger.error(
+                            `Error downloading video ${videoId}:`,
+                            error
+                        );
+                    }
                 });
 
-                progressVideos++;
-
-                this.downloadGateway.downloadVideosChannel(clientId, {
-                    progressVideos,
-                    totalVideos
-                });
-
-                this.logger.log(`Video ${videoId} downloaded successfully`);
-            } catch (error) {
-                this.logger.error(`Error downloading video ${videoId}:`, error);
+                // Esperar a que se completen todas las descargas del lote antes de pasar al siguiente
+                await Promise.all([...downloadPromises]);
             }
+        } catch (error) {
+            console.log(error);
         }
     }
 }

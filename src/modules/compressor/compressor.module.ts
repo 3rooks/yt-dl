@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import * as archiver from 'archiver';
+import archiver from 'archiver';
 import { DownloadGatewayModule } from 'src/lib/websocket/download-gateway.module';
 import { CompressorService } from './compressor.service';
 @Module({

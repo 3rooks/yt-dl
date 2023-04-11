@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Archiver } from 'archiver';
-import { createWriteStream } from 'fs';
+import { Archiver, EntryData } from 'archiver';
+import { createWriteStream, statSync } from 'fs';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
@@ -28,21 +28,17 @@ export class CompressorService {
             this.archive.pipe(outputStream);
             this.archive.directory(folderPath, false);
 
-            let compressedBytes = 0;
-            const totalSize = this.archive.pointer() / (1024 * 1024); // Obtener tamaño total del archivo comprimido
+            let totalSize = Math.round(
+                statSync(folderPath).size / (1024 * 1024)
+            );
+            let processedBytes = 0;
 
-            this.archive.on('data', (chunk: Buffer) => {
-                compressedBytes += chunk.length; // Actualizar la cantidad de bytes comprimidos
-                const compressedMB = Math.round(
-                    compressedBytes / (1024 * 1024)
-                );
-                const progressPayload = {
-                    progress: compressedMB,
-                    totalSize: totalSize // Incluir el tamaño total del archivo en el objeto progreso
-                };
+            this.archive.on('data', (data: Buffer) => {
+                processedBytes += data.length;
+                const progress = Math.round(processedBytes / (1024 * 1024));
                 this.downloadGateway.downloadChannelProgress(
                     clientId,
-                    progressPayload
+                    progress
                 );
             });
 
@@ -60,4 +56,8 @@ export class CompressorService {
             throw Exception.catch(error.message);
         }
     }
+}
+interface ExtendedEntryData extends EntryData {
+    progressTotal?: number;
+    progressAmount?: number;
 }

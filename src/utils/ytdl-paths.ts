@@ -3,7 +3,7 @@ import { mkdir } from 'fs/promises';
 import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
-import * as uuid from 'uuid-random';
+import uuid from 'uuid-random';
 import { Exception } from './error/exception-handler';
 
 const TEMP = 'temp';

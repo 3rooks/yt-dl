@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createWriteStream } from 'fs';
-import * as miniget from 'miniget';
+import miniget from 'miniget';
 import { FORMAT } from 'src/constants/video-formats';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
+import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
@@ -18,7 +19,8 @@ export class DownloadService {
     constructor(
         private readonly downloadGateway: DownloadGateway,
         private readonly youtubeDlService: YoutubeDlService,
-        private readonly compressorService: CompressorService
+        private readonly compressorService: CompressorService,
+        private readonly googleService: GoogleapiService
     ) {}
 
     public async downloadVideo(
@@ -53,11 +55,13 @@ export class DownloadService {
         try {
             const channelFolder = `${this.folder}/${channelName}`;
 
-            await this.youtubeDlService.downloadChannel(
-                videoIds,
-                channelFolder,
-                clientId
-            );
+            for (const videoId of videoIds) {
+                await this.downloadVideo(
+                    videoId,
+                    await this.googleService.getVideoInfo(videoId),
+                    clientId
+                );
+            }
 
             const outputZip = await this.compressorService.compressFolder(
                 channelFolder,
@@ -68,7 +72,6 @@ export class DownloadService {
 
             return { channelFolder, outputZip };
         } catch (error) {
-            console.log(error.message);
             throw Exception.catch(error.message);
         }
     }

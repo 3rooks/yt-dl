@@ -1,4 +1,4 @@
-<div id="channel-container" class="hidden bg-white rounded-md shadow-lg p-4">
+<div id="channel-container" class="bg-white rounded-md shadow-lg p-4">
     <div id="progress-videos">
         <h2 class="text-lg font-semibold mb-2">
             Downloading channel videos...
@@ -10,10 +10,7 @@
         <h2 class="text-lg font-semibold mb-2">
             Compressing channel videos...
         </h2>
-        <progress id="progress-channel-bar" value="0" max="0"></progress>
-        <p class="text-gray-500 text-xs mt-2" id="progress-channel-text">
-            0 / 0 MB
-        </p>
+        <p class="text-gray-500 text-xs mt-2" id="progress-compression">0 MB</p>
     </div>
 </div>
 
@@ -22,12 +19,10 @@
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
     const progressTextProgress = document.getElementById(
-        'progress-channel-text'
+        'progress-compression'
     );
-    const progressChannelBar = document.getElementById('progress-channel-bar');
 
     socket.on('downloadedVideos', (data) => {
-        // Actualizar la barra de progreso y el texto de progreso
         progressBar.value = data.progressVideos;
         progressBar.max = data.totalVideos;
         progressText.innerText = `${data.progressVideos} / ${data.totalVideos}`;
@@ -37,12 +32,11 @@
     });
 
     socket.on('downloadChannelProgress', (data) => {
-        progressChannelBar.value = data.progress;
-        progressChannelBar.max = data.totalSize;
-        progressTextProgress.innerText = `${data.progress} / ${data.totalSize} MB`;
+        console.log(data);
+        progressTextProgress.innerText = `${data} MB`;
     });
 
     socket.on('downloadChannelFinished', () => {
-        downloadContainer.classList.add('hidden');
+        downloadContainer.classList.add();
     });
 </script>

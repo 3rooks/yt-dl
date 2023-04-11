@@ -1,5 +1,5 @@
 import { load } from 'cheerio';
-import * as miniget from 'miniget';
+import miniget from 'miniget';
 
 export const getChannelIdVideoId = async (url: string) => {
     const html = await miniget(url).text();
