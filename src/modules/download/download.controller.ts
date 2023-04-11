@@ -93,7 +93,7 @@ export class DownloadController {
                 await this.googleService.getAllVideosFromChannel(channelId);
 
             const { channelFolder, outputZip } =
-                await this.downloadService.downloadVideos(
+                await this.downloadService.downloadChannel(
                     allVideosChannel,
                     channelName,
                     clientId

@@ -46,9 +46,9 @@ export class DownloadGateway
         if (client) client.emit('downloadProgress', payload);
     }
 
-    downloadFinished(clientId: string, status: string) {
+    downloadFinished(clientId: string) {
         const client = this.clients[clientId];
-        if (client) client.emit('downloadFinished', status);
+        if (client) client.emit('downloadFinished');
     }
 
     downloadVideosChannel(clientId: string, payload: channelProgress) {

@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createWriteStream } from 'fs';
+import { createWriteStream, existsSync } from 'fs';
+import { mkdir } from 'fs/promises';
 import miniget from 'miniget';
+import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
@@ -47,7 +49,23 @@ export class DownloadService {
         }
     }
 
-    public async downloadVideos(
+    async paths(videoInfo: IVideoInfo) {
+        const { channelTitle, channelId, title, videoId } = videoInfo;
+
+        const channelTemplate = `${channelTitle}_${channelId}`;
+        const fileTemplate = `${title}_${videoId}.${FORMAT.MP4}`;
+
+        const folderPath = join(this.folder, channelTemplate);
+
+        if (!existsSync(folderPath))
+            await mkdir(folderPath, { recursive: true });
+
+        const filePath = join(folderPath, fileTemplate);
+
+        return { filePath, folderPath };
+    }
+
+    public async downloadChannel(
         videoIds: string[],
         channelName: string,
         clientId: string
