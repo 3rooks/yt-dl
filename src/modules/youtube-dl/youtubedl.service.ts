@@ -1,14 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ExecaChildProcess } from 'execa';
-import { existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
-import { join } from 'path';
 import { CONFIG } from 'src/constants/config';
 import { DOWNLOAD_PROGRESS } from 'src/constants/regex.s';
-import { FORMAT } from 'src/constants/video-formats';
-import { IDownloadVideo } from 'src/interfaces/download-video.interface';
-import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { chunkArray } from 'src/utils/chunk-arr';
 import { Exception } from 'src/utils/error/exception-handler';
@@ -54,22 +48,6 @@ export class YoutubeDlService {
         } catch (error) {
             throw Exception.catch(error.message);
         }
-    }
-
-    private async paths(videoInfo: IVideoInfo): Promise<IDownloadVideo> {
-        const { channelTitle, channelId, title, videoId } = videoInfo;
-
-        const channelTemplate = `${channelTitle}_${channelId}`;
-        const fileTemplate = `${title}_${videoId}.${FORMAT.MP4}`;
-
-        const folderPath = join(this.folder, channelTemplate);
-
-        if (!existsSync(folderPath))
-            await mkdir(folderPath, { recursive: true });
-
-        const filePath = join(folderPath, fileTemplate);
-
-        return { filePath, folderPath };
     }
 
     private progress(clientId: string, youtubeDl: ExecaChildProcess): void {

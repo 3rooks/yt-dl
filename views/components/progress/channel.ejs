@@ -1,16 +1,56 @@
-<div id="channel-container" class="bg-white rounded-md shadow-lg p-4">
+<div
+    id="channel-container"
+    class="hidden bg-white rounded-md shadow-lg p-4 mt-4"
+>
     <div id="progress-videos">
         <h2 class="text-lg font-semibold mb-2">
             Downloading channel videos...
         </h2>
-        <progress id="progress-bar" value="0" max="0"></progress>
-        <p class="text-gray-500 text-xs mt-2" id="progress-text">0 / 0</p>
+        <div class="relative pt-1">
+            <div
+                class="
+                    overflow-hidden
+                    h-2
+                    mb-4
+                    text-xs
+                    flex
+                    rounded
+                    bg-gray-200
+                "
+            >
+                <div
+                    id="progress-bar"
+                    class="bg-green-500"
+                    style="width: 0%"
+                ></div>
+            </div>
+            <p class="text-gray-500 text-xs mt-2" id="progress-text">0 / 0</p>
+        </div>
     </div>
-    <div>
+    <div id="compress-container" class="hidden">
         <h2 class="text-lg font-semibold mb-2">
             Compressing channel videos...
         </h2>
-        <progress id="compress-progress" value="0" max="100"></progress>
+        <div class="relative pt-1">
+            <div
+                class="
+                    overflow-hidden
+                    h-2
+                    mb-4
+                    text-xs
+                    flex
+                    rounded
+                    bg-gray-200
+                "
+            >
+                <div
+                    id="compress-progress"
+                    class="bg-green-500"
+                    style="width: 0%"
+                ></div>
+            </div>
+            <p id="compress-text"></p>
+        </div>
     </div>
 </div>
 
@@ -19,21 +59,27 @@
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
     const compressProgress = document.getElementById('compress-progress');
+    const compressContainer = document.getElementById('compress-container');
+    const compressText = document.getElementById('compress-text');
 
     socket.on('downloadedVideos', (data) => {
-        progressBar.value = data.progressVideos;
-        progressBar.max = data.totalVideos;
+        progressBar.style.width = `${
+            (data.progressVideos / data.totalVideos) * 100
+        }%`;
         progressText.innerText = `${data.progressVideos} / ${data.totalVideos}`;
-
-        // Mostrar el contenedor de descarga
         downloadContainer.classList.remove('hidden');
     });
 
     socket.on('downloadChannelProgress', (data) => {
-        compressProgress.value = data;
+        compressContainer.classList.remove('hidden');
+        compressProgress.style.width = `${data}%`;
+        compressText.innerText = `${data}%`;
     });
 
     socket.on('downloadChannelFinished', () => {
-        downloadContainer.classList.add();
+        progressBar.style.width = '0%';
+        compressProgress.style.width = '0%';
+        compressText.innerText = '';
+        downloadContainer.classList.add('hidden');
     });
 </script>

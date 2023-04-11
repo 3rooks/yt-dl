@@ -1,13 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Archiver, EntryData } from 'archiver';
 import { createWriteStream } from 'fs';
-import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
-import uuid from 'uuid-random';
 
+const { ZIP } = FORMAT;
 @Injectable()
 export class CompressorService {
     private readonly folder = OUTPUT_PATH;
@@ -17,34 +16,22 @@ export class CompressorService {
         private readonly downloadGateway: DownloadGateway
     ) {}
 
-    public async compressFolder(folderTo: string, clientId: string) {
+    public async compressFolder(
+        dest: string,
+        dirPath: string,
+        clientId: string
+    ): Promise<void> {
         try {
             const archive = this.createArchiver();
 
-            const { outputStream, outputFilePath } = this.paths();
-
-            archive.pipe(outputStream);
-            archive.directory(folderTo, false);
+            archive.pipe(createWriteStream(dest));
+            archive.directory(dirPath, false);
 
             this.progress(clientId, archive);
-
             await archive.finalize();
-
-            return outputFilePath;
         } catch (error) {
             throw Exception.catch(error.message);
         }
-    }
-
-    private paths() {
-        const fileTemplate = `${uuid()}.${FORMAT.ZIP}`;
-        const outputFilePath = join(this.folder, fileTemplate);
-        const outputStream = createWriteStream(outputFilePath);
-
-        return {
-            outputStream,
-            outputFilePath
-        };
     }
 
     private progress(clientId: string, archive: Archiver) {

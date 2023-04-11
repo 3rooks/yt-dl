@@ -3,7 +3,6 @@ import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { rm, unlink } from 'fs/promises';
-import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
@@ -89,18 +88,17 @@ export class DownloadController {
                 channelId
             );
 
-            const folderName = `${channelInfo.name}_${channelInfo.channelId}`;
-            const outFolder = join(this.folder, folderName);
-
             const videoIds = await this.googleService.getAllVideosFromChannel(
                 channelId
             );
 
-            const outZip = await this.downloadService.downloadChannel(
-                videoIds,
-                outFolder,
-                clientId
-            );
+            const { filePath, folderName, folderPath } =
+                await this.downloadService.downloadChannel(
+                    videoIds,
+                    channelInfo,
+                    this.folder,
+                    clientId
+                );
 
             const encodeFileName = encodeURIComponent(folderName);
 
@@ -109,11 +107,11 @@ export class DownloadController {
                 'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.ZIP}"`
             });
 
-            const fileStream = createReadStream(outZip);
+            const fileStream = createReadStream(filePath);
 
             fileStream.on('close', async () => {
-                await rm(outFolder, { recursive: true, force: true });
-                await unlink(outZip);
+                await rm(folderPath, { recursive: true, force: true });
+                await unlink(filePath);
             });
 
             return new StreamableFile(fileStream);
@@ -130,7 +128,10 @@ export class DownloadController {
         const { channelId } = await getChannelIdVideoId(channelUrl);
         const channelInfo = await this.googleService.getChannelInfo(channelId);
 
-        const output = await this.downloadService.downloadImage(channelInfo);
+        const output = await this.downloadService.downloadImage(
+            channelInfo,
+            this.folder
+        );
 
         const encodeFileName = encodeURIComponent(channelId);
 
