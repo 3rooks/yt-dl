@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google } from 'googleapis';
 import { CONFIG } from 'src/constants/config';
-import { GoogleapiService } from './googleapi.service';
+import { GoogleapiService } from './googleyt.service';
 
 @Module({
     providers: [
