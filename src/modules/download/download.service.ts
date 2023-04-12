@@ -5,8 +5,8 @@ import { join } from 'path';
 import { FORMAT } from 'src/constants/video-formats';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
-import { Exception } from 'src/utils/error/exception-handler';
 import { pipeline } from 'stream/promises';
+import { Exception } from '../../utils/error/exception-handler';
 import { CompressorService } from '../compressor/compressor.service';
 import { YoutubeDlService } from '../youtube-dl/youtubedl.service';
 
