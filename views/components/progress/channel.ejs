@@ -55,7 +55,7 @@
 </div>
 
 <script>
-    const downloadContainer = document.getElementById('channel-container');
+    const channelContainer = document.getElementById('channel-container');
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
     const compressProgress = document.getElementById('compress-progress');
@@ -67,7 +67,7 @@
             (data.progressVideos / data.totalVideos) * 100
         }%`;
         progressText.innerText = `${data.progressVideos} / ${data.totalVideos}`;
-        downloadContainer.classList.remove('hidden');
+        channelContainer.classList.remove('hidden');
     });
 
     socket.on('downloadChannelProgress', (data) => {
@@ -80,6 +80,6 @@
         progressBar.style.width = '0%';
         compressProgress.style.width = '0%';
         compressText.innerText = '';
-        downloadContainer.classList.add('hidden');
+        channelContainer.classList.add('hidden');
     });
 </script>

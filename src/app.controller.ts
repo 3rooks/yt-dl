@@ -11,4 +11,8 @@ export class AppController {
     @Get('/channel')
     @Render('pages/channel')
     subroot() {}
+
+    @Get('/image')
+    @Render('pages/image')
+    subsubroot() {}
 }

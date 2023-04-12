@@ -11,6 +11,7 @@ import { isValidYoutubeUrl } from 'src/utils/get-video-id';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
+import { DownloadImageDto } from './dto/download-image.dto';
 import { DownloadVideoDto } from './dto/download-video.dto';
 
 @ApiTags('Download')
@@ -122,7 +123,7 @@ export class DownloadController {
 
     @Post('image')
     async downloadImage(
-        @Body() { channelUrl }: DownloadChannelDto,
+        @Body() { channelUrl }: DownloadImageDto,
         @Res({ passthrough: true }) res: Response
     ): Promise<StreamableFile> {
         const { channelId } = await getChannelIdVideoId(channelUrl);

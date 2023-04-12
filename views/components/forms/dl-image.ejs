@@ -1,5 +1,5 @@
-<form id="dl-channel-form" class="w-full md:w-8/12 lg:w-6/12 mx-auto">
-    <h2 class="text-center text-lg font-bold mb-4">DOWNLOAD CHANNEL:</h2>
+<form id="dl-img-form" class="w-full md:w-8/12 lg:w-6/12 mx-auto">
+    <h2 class="text-center text-lg font-bold mb-4">DOWNLOAD IMAGE:</h2>
     <div
         class="
             flex
@@ -46,7 +46,7 @@
     ></button>
 </div>
 <script>
-    const form = document.getElementById('dl-channel-form');
+    const form = document.getElementById('dl-img-form');
     const sendButton = form.querySelector('button[type="submit"]');
     const downloadLink = document.getElementById('download-link');
     const buttonContainer = document.getElementById('dl-btn-container');
@@ -62,10 +62,9 @@
             sendButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
             sendButton.classList.add('bg-gray-500', 'cursor-not-allowed');
 
-            const response = await fetch('/download/channel', {
+            const response = await fetch('/download/image', {
                 method: 'POST',
                 body: JSON.stringify({
-                    clientId: socket.id,
                     channelUrl: data.channelUrl
                 }),
                 headers: {
