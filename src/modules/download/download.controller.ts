@@ -5,7 +5,7 @@ import { createReadStream } from 'fs';
 import { rm, unlink } from 'fs/promises';
 import { FORMAT } from 'src/constants/video-formats';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
-import { GoogleapiService } from 'src/lib/googleapi/googleapi.service';
+import { GoogleapiService } from 'src/lib/googleyt/googleapi.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { isValidYoutubeUrl } from 'src/utils/get-video-id';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
