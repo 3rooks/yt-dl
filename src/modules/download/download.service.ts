@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createWriteStream } from 'fs';
 import miniget from 'miniget';
 import { join } from 'path';
-import { FORMAT } from 'src/constants/video-formats';
+import { FORMATS } from 'src/constants/video-formats';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { pipeline } from 'stream/promises';
@@ -77,7 +77,7 @@ export class DownloadService {
         const { name, channelId } = channelInfo;
 
         const folderName = `${name}_${channelId}`;
-        const fileName = `${folderName}.${FORMAT.ZIP}`;
+        const fileName = `${folderName}.${FORMATS.ZIP}`;
 
         const folderPath = join(output, folderName);
         const filePath = join(output, fileName);
@@ -91,7 +91,7 @@ export class DownloadService {
         const imgUrl = thumbnails.high.url.replace(/=s\d+/, '=s1080');
         const imgStream = await miniget(imgUrl);
 
-        const imgTemplate = `${channelId}.${FORMAT.JPG}`;
+        const imgTemplate = `${channelId}.${FORMATS.JPG}`;
         const outputPath = join(output, imgTemplate);
 
         const outStream = createWriteStream(outputPath);

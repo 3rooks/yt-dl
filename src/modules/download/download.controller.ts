@@ -3,7 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { rm, unlink } from 'fs/promises';
-import { FORMAT } from 'src/constants/video-formats';
+import { FORMATS } from 'src/constants/video-formats';
 import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
 import { GoogleapiService } from 'src/lib/googleapis/googleapis.service';
 import { Exception } from 'src/utils/error/exception-handler';
@@ -57,7 +57,7 @@ export class DownloadController {
 
             res.set({
                 'Content-Type': 'video/mp4',
-                'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.MP4}"`
+                'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMATS.MP4}"`
             });
 
             const fileStream = createReadStream(filePath);
@@ -105,7 +105,7 @@ export class DownloadController {
 
             res.set({
                 'Content-Type': 'application/zip',
-                'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.ZIP}"`
+                'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMATS.ZIP}"`
             });
 
             const fileStream = createReadStream(filePath);
@@ -138,7 +138,7 @@ export class DownloadController {
 
         res.set({
             'Content-Type': 'image/jpeg',
-            'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMAT.JPG}"`
+            'Content-Disposition': `attachment; filename="${encodeFileName}.${FORMATS.JPG}"`
         });
 
         const fileStream = createReadStream(output);

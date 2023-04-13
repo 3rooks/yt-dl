@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Archiver, EntryData } from 'archiver';
 import { createWriteStream } from 'fs';
-import { FORMAT } from 'src/constants/video-formats';
+import { FORMATS } from 'src/constants/video-formats';
 import { DownloadGateway } from 'src/lib/websocket/download-gateway.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
 
-const { ZIP } = FORMAT;
+const { ZIP } = FORMATS;
 @Injectable()
 export class CompressorService {
     private readonly folder = OUTPUT_PATH;
