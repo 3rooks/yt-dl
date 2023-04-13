@@ -41,7 +41,7 @@ export class DownloadService {
     private pathsVideoInfo = (videoInfo: IVideoInfo, output: string) => {
         const { channelTitle, channelId, title, videoId } = videoInfo;
 
-        const videoName = `${title}_${videoId}`;
+        const videoName = `${title}_${videoId}.${FORMATS.MP4}`;
         const folderName = `${channelTitle}_${channelId}`;
 
         const folderPath = join(output, folderName);
