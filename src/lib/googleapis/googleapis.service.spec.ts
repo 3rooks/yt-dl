@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { GoogleapiService } from './googleyt.service';
+import { GoogleapiService } from './googleapis.service';
 
 describe('GoogleapiService', () => {
     let service: GoogleapiService;

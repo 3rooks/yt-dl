@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { GoogleapiModule } from '../../lib/googleyt/googleyt.module';
+import { GoogleapiModule } from '../../lib/googleapis/googleapis.module';
 import { DownloadGatewayModule } from '../../lib/websocket/download-gateway.module';
 import { CompressorModule } from '../compressor/compressor.module';
 import { YoutubeDlModule } from '../youtube-dl/youtubedl.module';
