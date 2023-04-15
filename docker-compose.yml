@@ -25,5 +25,7 @@ services:
             - 8081:8081
         depends_on:
             - mongodb
+    py:
+        image: python:3.10-alpine
 volumes:
     mongo:

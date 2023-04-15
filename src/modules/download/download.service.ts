@@ -6,9 +6,9 @@ import { FORMATS } from 'src/constants/video-formats';
 import { IChannelInfo } from 'src/interfaces/channel-info.interface';
 import { IVideoInfo } from 'src/interfaces/downloads.interface';
 import { pipeline } from 'stream/promises';
+import { CompressorService } from '../../lib/compressor/compressor.service';
+import { YoutubeDlService } from '../../lib/youtube-dl/youtubedl.service';
 import { Exception } from '../../utils/error/exception-handler';
-import { CompressorService } from '../compressor/compressor.service';
-import { YoutubeDlService } from '../youtube-dl/youtubedl.service';
 
 @Injectable()
 export class DownloadService {
