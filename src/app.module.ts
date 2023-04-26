@@ -4,7 +4,6 @@ import { AppController } from './app.controller';
 import { ClusterModule } from './config/cluster/cluster.module';
 import { CONFIG } from './constants/config';
 import { DownloadModule } from './modules/download/download.module';
-import { CleanFolderTask } from './utils/clean-folder';
 import { LocalModule } from './modules/local/local.module';
 
 @Module({
@@ -14,8 +13,7 @@ import { LocalModule } from './modules/local/local.module';
         DownloadModule,
         LocalModule
     ],
-    controllers: [AppController],
-    providers: [CleanFolderTask]
+    controllers: [AppController]
 })
 export class AppModule {
     static port: number;

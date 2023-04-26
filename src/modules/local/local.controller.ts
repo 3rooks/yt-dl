@@ -1,42 +1,55 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    Patch,
-    Post
-} from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import { Exception } from 'src/utils/error/exception-handler';
+import { isValidYoutubeUrl } from 'src/utils/get-video-id';
+import { DownloadLocalChannelDto } from './dto/download-local-channel';
 import { DownloadLocalVideoDto } from './dto/download-local-video';
-import { UpdateLocalDto } from './dto/update-local.dto';
 import { LocalService } from './local.service';
 
+@ApiTags('Local')
 @Controller('local')
 export class LocalController {
     constructor(private readonly localService: LocalService) {}
 
     @Post('video')
-    create(@Body() createLocalDto: DownloadLocalVideoDto) {
-        return this.localService.create(createLocalDto);
+    async downloadVideo(@Body() { videoUrl }: DownloadLocalVideoDto) {
+        try {
+            if (!isValidYoutubeUrl(videoUrl))
+                throw new Exception({
+                    message: 'INVALID_YOUTUBE_URL',
+                    status: 'BAD_REQUEST'
+                });
+
+            const status = await this.localService.downloadVideo(videoUrl);
+            if (!status) return `( ﾉ ﾟｰﾟ)ﾉ ALREADY_VIDEO_EXIST`;
+
+            return `(◡‿◡) VIDEO_DOWNLOADED`;
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
     }
 
-    @Get()
-    findAll() {
-        return this.localService.findAll();
+    @Post('channel')
+    async downloadChannel(@Body() { channelUrl }: DownloadLocalChannelDto) {
+        if (!isValidYoutubeUrl(channelUrl))
+            throw new Exception({
+                message: 'INVALID_YOUTUBE_URL',
+                status: 'BAD_REQUEST'
+            });
+
+        const total = await this.localService.downloadChannel(channelUrl);
+        return `(◡‿◡) ${total} VIDEOS DOWNLOADED`;
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.localService.findOne(+id);
-    }
+    @Post('image')
+    async downloadImage(@Body() { channelUrl }: DownloadLocalChannelDto) {
+        if (!isValidYoutubeUrl(channelUrl))
+            throw new Exception({
+                message: 'INVALID_YOUTUBE_URL',
+                status: 'BAD_REQUEST'
+            });
 
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateLocalDto: UpdateLocalDto) {
-        return this.localService.update(+id, updateLocalDto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.localService.remove(+id);
+        const results = await this.localService.downloadImage(channelUrl);
+        return `IMAGE DOWNLOADED: ${results}`;
     }
 }

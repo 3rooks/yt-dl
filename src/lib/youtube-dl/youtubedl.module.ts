@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { DownloadGatewayModule } from 'src/lib/websocket/download-gateway.module';
 import { exec } from 'youtube-dl-exec';
+import { GoogleapiModule } from '../googleapis/googleapis.module';
 import { YoutubeDlService } from './youtubedl.service';
 
 @Module({
-    imports: [DownloadGatewayModule],
+    imports: [GoogleapiModule, DownloadGatewayModule],
     providers: [
         YoutubeDlService,
         {

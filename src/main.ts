@@ -4,7 +4,6 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { swaggerConfig } from './utils/swagger-config';
-import { ClusterService } from './config/cluster/cluster.service';
 
 const bootstrap = async () => {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -30,9 +29,7 @@ const bootstrap = async () => {
 
     swaggerConfig(app);
 
-    ClusterService.clusterize(async () => {
-        await app.listen(AppModule.port);
-    });
+    await app.listen(AppModule.port);
 };
 
 bootstrap();

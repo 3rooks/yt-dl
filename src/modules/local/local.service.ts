@@ -1,26 +1,35 @@
 import { Injectable } from '@nestjs/common';
-import { CreateLocalDto } from './dto/download-local-video';
-import { UpdateLocalDto } from './dto/update-local.dto';
+import { getChannelIdVideoId } from 'src/lib/cheerio/cheerio.aux';
+import { YoutubeDlService } from 'src/lib/youtube-dl/youtubedl.service';
+import { Exception } from 'src/utils/error/exception-handler';
+import { OUTPUT_PATH } from 'src/utils/paths.resource';
 
 @Injectable()
 export class LocalService {
-    create(createLocalDto: CreateLocalDto) {
-        return 'This action adds a new local';
+    private readonly folder = OUTPUT_PATH;
+
+    constructor(private readonly ytdlService: YoutubeDlService) {}
+
+    async downloadVideo(videoUrl: string) {
+        try {
+            const { videoId } = await getChannelIdVideoId(videoUrl);
+            return await this.ytdlService.dLocalVideo(videoId);
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
     }
 
-    findAll() {
-        return `This action returns all local`;
+    async downloadChannel(channelUrl: string) {
+        try {
+            const { channelId } = await getChannelIdVideoId(channelUrl);
+            return await this.ytdlService.dLocalChannel(channelId);
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} local`;
-    }
-
-    update(id: number, updateLocalDto: UpdateLocalDto) {
-        return `This action updates a #${id} local`;
-    }
-
-    remove(id: number) {
-        return `This action removes a #${id} local`;
+    async downloadImage(channelUrl: string) {
+        const { channelId } = await getChannelIdVideoId(channelUrl);
+        return await this.ytdlService.dLocalImage(channelId);
     }
 }
