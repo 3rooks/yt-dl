@@ -9,6 +9,7 @@ import { GoogleapiService } from 'src/lib/googleapis/googleapis.service';
 import { Exception } from 'src/utils/error/exception-handler';
 import { isValidYoutubeUrl } from 'src/utils/get-video-id';
 import { OUTPUT_PATH } from 'src/utils/paths.resource';
+import { getVideoID } from 'ytdl-core';
 import { DownloadService } from './download.service';
 import { DownloadChannelDto } from './dto/download-channel.dto';
 import { DownloadImageDto } from './dto/download-image.dto';
@@ -36,7 +37,7 @@ export class DownloadController {
                     status: 'BAD_REQUEST'
                 });
 
-            const { videoId } = await getChannelIdVideoId(videoUrl);
+            const videoId = await getVideoID(videoUrl);
             const videoInfo = await this.googleService.getVideoInfo(videoId);
 
             if (!videoInfo)

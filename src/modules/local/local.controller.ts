@@ -31,25 +31,34 @@ export class LocalController {
 
     @Post('channel')
     async downloadChannel(@Body() { channelUrl }: DownloadLocalChannelDto) {
-        if (!isValidYoutubeUrl(channelUrl))
-            throw new Exception({
-                message: 'INVALID_YOUTUBE_URL',
-                status: 'BAD_REQUEST'
-            });
+        try {
+            if (!isValidYoutubeUrl(channelUrl))
+                throw new Exception({
+                    message: 'INVALID_YOUTUBE_URL',
+                    status: 'BAD_REQUEST'
+                });
 
-        const total = await this.localService.downloadChannel(channelUrl);
-        return `(◡‿◡) ${total} VIDEOS DOWNLOADED`;
+            const total = await this.localService.downloadChannel(channelUrl);
+            return `(◡‿◡) ${total} VIDEOS DOWNLOADED`;
+        } catch (error) {
+            console.log(error.message + error.stack);
+            throw Exception.catch(error.message);
+        }
     }
 
     @Post('image')
     async downloadImage(@Body() { channelUrl }: DownloadLocalChannelDto) {
-        if (!isValidYoutubeUrl(channelUrl))
-            throw new Exception({
-                message: 'INVALID_YOUTUBE_URL',
-                status: 'BAD_REQUEST'
-            });
+        try {
+            if (!isValidYoutubeUrl(channelUrl))
+                throw new Exception({
+                    message: 'INVALID_YOUTUBE_URL',
+                    status: 'BAD_REQUEST'
+                });
 
-        const results = await this.localService.downloadImage(channelUrl);
-        return `IMAGE DOWNLOADED: ${results}`;
+            const results = await this.localService.downloadImage(channelUrl);
+            return `IMAGE DOWNLOADED: ${results}`;
+        } catch (error) {
+            throw Exception.catch(error.message);
+        }
     }
 }

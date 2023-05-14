@@ -5,8 +5,7 @@ export const getChannelIdVideoId = async (url: string) => {
     const html = await miniget(url).text();
     const $ = load(html);
 
-    const channelId = $('meta[itemprop="channelId"]').attr('content');
-    const videoId = $('meta[itemprop="videoId"]').attr('content');
+    const channelId = $('link[rel="canonical"]').attr('href').split('/').pop();
 
-    return { channelId, videoId };
+    return { channelId };
 };
